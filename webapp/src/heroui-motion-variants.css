@@ -1,0 +1,52 @@
+/* Motion variants from @heroui/styles (dark variant omitted — see index.css). */
+
+@custom-variant motion-reduce {
+  &:is([data-reduce-motion="true"], [data-reduce-motion="true"] *) {
+    @slot;
+
+    &::before,
+    &::after {
+      @slot;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &:not(:is([data-reduce-motion="true"], [data-reduce-motion="true"] *)) {
+      @slot;
+
+      &::before,
+      &::after {
+        @slot;
+      }
+    }
+  }
+}
+
+@custom-variant motion-safe {
+  &:is([data-reduce-motion="false"], [data-reduce-motion="false"] *) {
+    @slot;
+
+    &::before,
+    &::after {
+      @slot;
+    }
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    &:not(
+      :is(
+        [data-reduce-motion="true"],
+        [data-reduce-motion="true"] *,
+        [data-reduce-motion="false"],
+        [data-reduce-motion="false"] *
+      )
+    ) {
+      @slot;
+
+      &::before,
+      &::after {
+        @slot;
+      }
+    }
+  }
+}

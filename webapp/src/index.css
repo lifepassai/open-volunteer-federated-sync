@@ -1,0 +1,63 @@
+@layer theme, base, components, utilities;
+
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@import "../node_modules/@heroui/styles/dist/base/base.css" layer(base);
+@import "../node_modules/@heroui/styles/dist/components/index.css" layer(components);
+@import "../node_modules/@heroui/styles/dist/themes/default/index.css" layer(theme);
+@import "../node_modules/@heroui/styles/dist/utilities/index.css";
+
+@import "./heroui-motion-variants.css";
+
+/* Class / data only — no OS prefers-color-scheme fallback (HeroUI's default dark variant adds that). */
+@custom-variant dark (&:where(.dark, .dark *, [data-theme="dark"], [data-theme="dark"] *));
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+html {
+  background: #ffffff;
+  color: #0f172a;
+}
+
+body {
+  margin: 0;
+  background: #ffffff;
+  color: #0f172a;
+}
+
+html.dark {
+  background: #020617;
+  color: #f8fafc;
+}
+
+html.dark body {
+  background: #020617;
+  color: #f8fafc;
+}
+
+@layer base {
+  h1,
+  h2,
+  h3 {
+    @apply m-0 font-semibold;
+  }
+
+  /* Shell header: explicit slate so it matches the chrome. */
+  h1 {
+    @apply text-3xl leading-tight tracking-tight text-slate-900 md:text-4xl dark:text-slate-50;
+  }
+
+  /* In-page headings: follow HeroUI tokens so text stays correct on Card surfaces. */
+  h2 {
+    @apply text-lg leading-snug tracking-tight text-foreground;
+  }
+
+  h3 {
+    @apply text-sm leading-normal text-foreground;
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "name": "server",
+  "version": "1.0.0",
+  "description": "",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "predev": "npm run build",
+    "dev": "node dist/index.js",
+    "prestart": "npm run build",
+    "start": "node dist/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.876.0",
+    "@aws-sdk/lib-dynamodb": "^3.876.0",
+    "@vendia/serverless-express": "^4.12.6",
+    "dotenv": "^16.4.5",
+    "express": "^5.0.0",
+    "google-auth-library": "^9.15.1"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.0"
+  }
+}

@@ -1,0 +1,138 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Open Volunteer Federated Sync - single Lambda (HTTP API) + DynamoDB (accounts)
+
+Parameters:
+  ArtifactBucket:
+    Type: String
+    Description: S3 bucket that contains the Lambda zip artifact
+  ArtifactKey:
+    Type: String
+    Description: S3 key for the Lambda zip artifact
+  StageName:
+    Type: String
+    Default: prod
+  AccountsTableName:
+    Type: String
+    Default: ovfs-accounts
+  AllowedOrigins:
+    Type: String
+    Default: "*"
+    Description: CORS allow-origins for the HTTP API (comma-separated or *)
+  GoogleClientId:
+    Type: String
+    Description: Google OAuth 2.0 Web client ID (.apps.googleusercontent.com) for verifying ID tokens
+  LambdaMemoryMB:
+    Type: Number
+    Default: 512
+  LambdaTimeoutSeconds:
+    Type: Number
+    Default: 15
+
+Resources:
+  AccountsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Ref AccountsTableName
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: email
+          AttributeType: S
+      KeySchema:
+        - AttributeName: email
+          KeyType: HASH
+
+  ApiHandlerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: DynamoAccountsAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:DeleteItem
+                  - dynamodb:Scan
+                Resource: !GetAtt AccountsTable.Arn
+
+  ApiHandlerFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-api"
+      Runtime: nodejs20.x
+      Handler: lambda.handler
+      Role: !GetAtt ApiHandlerRole.Arn
+      MemorySize: !Ref LambdaMemoryMB
+      Timeout: !Ref LambdaTimeoutSeconds
+      Code:
+        S3Bucket: !Ref ArtifactBucket
+        S3Key: !Ref ArtifactKey
+      Environment:
+        Variables:
+          STORAGE_BACKEND: dynamodb
+          ACCOUNTS_TABLE_NAME: !Ref AccountsTable
+          GOOGLE_CLIENT_ID: !Ref GoogleClientId
+
+  HttpApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: !Sub "${AWS::StackName}-http-api"
+      ProtocolType: HTTP
+      CorsConfiguration:
+        AllowCredentials: false
+        AllowHeaders:
+          - content-type
+          - authorization
+        AllowMethods:
+          - GET
+          - POST
+          - PATCH
+          - DELETE
+          - OPTIONS
+        AllowOrigins: !Split [",", !Ref AllowedOrigins]
+
+  ApiIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref HttpApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt ApiHandlerFunction.Arn
+      PayloadFormatVersion: "2.0"
+
+  DefaultRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApi
+      RouteKey: $default
+      Target: !Join ["/", ["integrations", !Ref ApiIntegration]]
+
+  ApiStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref HttpApi
+      StageName: !Ref StageName
+      AutoDeploy: true
+
+  ApiInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref ApiHandlerFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${HttpApi}/*/*"
+
+Outputs:
+  ApiUrl:
+    Description: Base URL for the HTTP API
+    Value: !Sub "https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com/${StageName}"

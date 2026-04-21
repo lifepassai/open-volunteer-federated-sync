@@ -1,0 +1,31 @@
+{
+  "name": "open-volunteer-federated-sync",
+  "version": "1.0.0",
+  "description": "Service for synchronizing a federation of open volunteer databases",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm -F webapp dev",
+    "build": "pnpm -F webapp build && pnpm -F server build",
+    "lint": "pnpm -F webapp lint && pnpm -F server lint",
+    "test": "pnpm -F server test",
+    "sam:build": "pnpm -F server build && sam build",
+    "sam:deploy": "sam deploy --guided",
+    "package:lambda": "node aws/package-lambda.mjs",
+    "bootstrap:artifact-bucket": "node aws/bootstrap-artifact-bucket.mjs",
+    "deploy:prod": "node aws/deploy-prod.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lifepassai/open-volunteer-federated-sync.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/lifepassai/open-volunteer-federated-sync/issues"
+  },
+  "homepage": "https://github.com/lifepassai/open-volunteer-federated-sync#readme",
+  "workspaces": [],
+  "packageManager": "pnpm@10.33.0+sha512.10568bb4a6afb58c9eb3630da90cc9516417abebd3fabbe6739f0ae795728da1491e9db5a544c76ad8eb7570f5c4bb3d6c637b2cb41bfdcdb47fa823c8649319"
+}

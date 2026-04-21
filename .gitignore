@@ -1,0 +1,6 @@
+node_modules/
+.pnpm-store/
+dist/
+
+# Local AWS deploy config (copy from aws/cloud.env.example)
+aws/cloud.env
