@@ -1,6 +1,8 @@
+import type { DatasetType } from "../types.js";
+
 export interface DatasetSource {
     uri: string; // unique key
-    type: "volunteer" | "organization" | "opportunity";
+    type: DatasetType;
     disabled?: boolean;
     name?: string;
     description?: string;
@@ -11,7 +13,7 @@ export interface DatasetSource {
 }
 
 export interface DatasetSourceUpdate {
-    type: "volunteer" | "organization" | "opportunity";
+    type: DatasetType;
     name?: string;
     description?: string;
     apiKey?: string;

@@ -4,29 +4,7 @@ import nodeCrypto from "node:crypto";
 
 import type { AnyQuery, BatchRead, BatchReadResult, SinceQuery, SnapshotResult, UpdateResult } from "../types.js";
 import type { CreateVolunteerParams, UpdateVolunteerParams, Volunteer, VolunteerStore } from "./types.js";
-
-async function ensureDir(dirPath: string) {
-  await fs.mkdir(dirPath, { recursive: true });
-}
-
-async function readJsonFile(filePath: string) {
-  try {
-    const raw = await fs.readFile(filePath, "utf8");
-    return JSON.parse(raw);
-  } catch (err: unknown) {
-    if (err && typeof err === "object" && "code" in err && (err as { code?: string }).code === "ENOENT")
-      return null;
-    throw err;
-  }
-}
-
-async function writeJsonAtomic(filePath: string, data: unknown) {
-  const dir = path.dirname(filePath);
-  await ensureDir(dir);
-  const tmp = `${filePath}.tmp.${nodeCrypto.randomUUID()}`;
-  await fs.writeFile(tmp, JSON.stringify(data, null, 2), "utf8");
-  await fs.rename(tmp, filePath);
-}
+import { defaultStoreDir, readJsonFile, writeJsonAtomic } from "../../utils/file.js";
 
 /** Unique key on disk is `uri` (same as `read` / `delete` id parameter). */
 function uriToFilename(uri: string) {
@@ -47,11 +25,8 @@ function normalizeVolunteer(input: unknown): Volunteer {
 export class FileVolunteerStore implements VolunteerStore {
   dataDir: string;
 
-  constructor({ dataFile }: { dataFile: string }) {
-    if (!dataFile) throw new Error("dataFile is required");
-    const ext = path.extname(dataFile);
-    const baseWithoutExt = ext ? path.basename(dataFile, ext) : path.basename(dataFile);
-    this.dataDir = path.join(path.dirname(dataFile), baseWithoutExt);
+  constructor({ dir }: { dir?: string } = {}) {
+    this.dataDir = dir && dir.length > 0 ? dir : defaultStoreDir("volunteers");
   }
 
   _path(uri: string) {

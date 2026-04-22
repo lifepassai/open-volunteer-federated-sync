@@ -16,11 +16,6 @@ export function resolveDatasetSourceStore(): DatasetSourceStore {
     throw new Error(`Dataset sources store: unsupported backend "${backend}" (file is the default)`);
   }
 
-  cached = new FileDatasetSourceStore({
-    dataFile:
-      process.env.DATASET_SOURCES_DATA_FILE ||
-      (process.env.DATA_DIR ? `${process.env.DATA_DIR}/dataset-sources.json` : "./data/dataset-sources.json"),
-  });
-
+  cached = new FileDatasetSourceStore();
   return cached!;
 }

@@ -16,12 +16,7 @@ export function resolveDatasetSubscribersStore(): DatasetSubscribersStore {
     throw new Error(`Dataset subscribers store: unsupported backend "${backend}" (file is the default)`);
   }
 
-  cached = new FileDatasetSubscribersStore({
-    dataFile:
-      process.env.DATASET_SUBSCRIBERS_DATA_FILE ||
-      (process.env.DATA_DIR ? `${process.env.DATA_DIR}/dataset-subscribers.json` : "./data/dataset-subscribers.json"),
-  });
-
+  cached = new FileDatasetSubscribersStore();
   return cached!;
 }
 

@@ -166,15 +166,6 @@ export function AppShell({ children }: PropsWithChildren) {
                   >
                     <IconHamburger title="Menu" className="h-6 w-6" />
                   </button>
-                  {account ? (
-                    <NavLink
-                      to="/"
-                      className="shrink-0 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-slate-400/50 md:hidden dark:focus-visible:ring-slate-500/60"
-                      aria-label="Open Volunteer Federation home"
-                    >
-                      <BrandLogo className="h-8 w-8" />
-                    </NavLink>
-                  ) : null}
                   <h1 className="min-w-0 flex-1 truncate">{headerTitle}</h1>
                 </div>
 

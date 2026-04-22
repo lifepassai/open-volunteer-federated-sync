@@ -1,7 +1,6 @@
 {
-  "nextUid": 3,
+  "nextUid": 2,
   "emailToUid": {
-    "mike@mikeprince.com": "1",
-    "mike@matchwise.ai": "2"
+    "mike@mikeprince.com": "1"
   }
 }

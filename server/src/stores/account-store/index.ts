@@ -20,10 +20,6 @@ export function resolveAccountStore(): AccountStore {
     return cached!;
   }
 
-  cached = new FileAccountStore({
-    accountsFile:
-      process.env.ACCOUNTS_FILE ||
-      (process.env.DATA_DIR ? `${process.env.DATA_DIR}/accounts.json` : "./data/accounts.json"),
-  });
+  cached = new FileAccountStore();
   return cached!;
 }

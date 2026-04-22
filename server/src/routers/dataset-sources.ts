@@ -1,8 +1,8 @@
 import { Router } from "express";
 import type { Request, Response } from "express";
 import { requireAuth } from "../auth/middleware.js";
-import { resolveDatasetSubscribersStore } from "../stores/dataset-subscribers-store/index.js";
-import type { DatasetType } from "../stores/types.js";
+import type { DatasetSource } from "../stores/dataset-sources-store/types.js";
+import { resolveDatasetSourceStore } from "../stores/dataset-sources-store/index.js";
 
 function isServerMisconfiguredAuthError(message: string) {
   return (
@@ -12,9 +12,18 @@ function isServerMisconfiguredAuthError(message: string) {
   );
 }
 
-function asSubscriberType(value: unknown): DatasetType | undefined {
+type DatasetSourceType = "volunteer" | "organization" | "opportunity";
+
+function asSourceType(value: unknown): DatasetSourceType | undefined {
   if (value === "volunteer" || value === "organization" || value === "opportunity") return value;
   return undefined;
+}
+
+function readRequiredString(body: unknown, key: string): string {
+  if (!body || typeof body !== "object") throw new Error(`BadRequest: ${key} is required`);
+  const v = (body as Record<string, unknown>)[key];
+  if (typeof v !== "string" || v.length === 0) throw new Error(`BadRequest: ${key} is required`);
+  return v;
 }
 
 function readOptionalString(body: unknown, key: string): string | undefined {
@@ -33,24 +42,29 @@ function readOptionalBoolean(body: unknown, key: string): boolean | undefined {
   return v;
 }
 
-export function createDatasetSubscribersRouter(): Router {
-  const resolvedStore = resolveDatasetSubscribersStore();
+export function createDatasetSourcesRouter(): Router {
+  const store = resolveDatasetSourceStore();
   const router = Router();
+
+  function paramUri(req: Request): string {
+    const raw = req.params.uri;
+    const encoded = Array.isArray(raw) ? raw[0] : raw;
+    return typeof encoded === "string" ? decodeURIComponent(encoded) : "";
+  }
 
   router.get("/", requireAuth, async (req: Request, res: Response) => {
     try {
-      //const account = req.user;
-      const type = asSubscriberType(req.query.type);
+      const type = asSourceType(req.query.type);
       if (req.query.type !== undefined && !type) {
         return res.status(400).json({ error: "BadRequest", message: "type must be volunteer|organization|opportunity" });
       }
-      const all = await resolvedStore.list();
+      const all = await store.list();
       const out = all.filter((s) => (!type || s.type === type));
       res.json(out);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Unauthorized";
       if (isServerMisconfiguredAuthError(message)) {
-        console.error("[dataset-subscribers] server misconfiguration:", message);
+        console.error("[dataset-sources] server misconfiguration:", message);
         return res.status(500).json({ error: "ServerMisconfigured", message });
       }
       const status = message.startsWith("BadRequest") ? 400 : 401;
@@ -60,11 +74,9 @@ export function createDatasetSubscribersRouter(): Router {
 
   router.post("/", requireAuth, async (req: Request, res: Response) => {
     try {
-      const { uid } = req.user!;
-      const type = asSubscriberType((req.body as { type?: unknown })?.type);
-      if (!type) {
-        return res.status(400).json({ error: "BadRequest", message: "type is required" });
-      }
+      const uri = readRequiredString(req.body, "uri");
+      const type = asSourceType((req.body as { type?: unknown })?.type);
+      if (!type) return res.status(400).json({ error: "BadRequest", message: "type is required" });
 
       const name = readOptionalString(req.body, "name");
       const description = readOptionalString(req.body, "description");
@@ -72,56 +84,59 @@ export function createDatasetSubscribersRouter(): Router {
       const disabled = readOptionalBoolean(req.body, "disabled");
 
       const created = new Date().toISOString();
-      const record = await resolvedStore.create({
-        uid,
+      const record: DatasetSource = {
+        uri,
         type,
         name,
         description,
         apiKey,
         disabled,
         created,
-      });
-      res.status(201).json(record);
+      };
+
+      const out = await store.create(record);
+      res.status(201).json(out);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Unauthorized";
       if (isServerMisconfiguredAuthError(message)) {
-        console.error("[dataset-subscribers] server misconfiguration:", message);
+        console.error("[dataset-sources] server misconfiguration:", message);
         return res.status(500).json({ error: "ServerMisconfigured", message });
       }
-      const status = message.startsWith("BadRequest") ? 400 : message === "subscriber already exists" ? 409 : 401;
-      const error =
-        status === 409 ? "Conflict" : status === 401 ? "Unauthorized" : "BadRequest";
+      const status = message === "uri already exists" ? 409 : message.startsWith("BadRequest") ? 400 : 401;
+      const error = status === 409 ? "Conflict" : status === 401 ? "Unauthorized" : "BadRequest";
       res.status(status).json({ error, message });
     }
   });
 
-  router.patch("/:type", requireAuth, async (req: Request, res: Response) => {
+  router.patch("/:uri", requireAuth, async (req: Request, res: Response) => {
     try {
-      const { uid } = req.user!;
-      const type = asSubscriberType(req.params.type);
-      if (!type) {
-        return res.status(400).json({ error: "BadRequest", message: "Invalid type" });
-      }
+      const uri = paramUri(req);
+      if (!uri) return res.status(400).json({ error: "BadRequest", message: "Invalid uri" });
+
+      const existing = await store.read(uri);
+      if (!existing) return res.status(404).json({ error: "NotFound", message: "NotFound" });
+
+      const type = asSourceType(readOptionalString(req.body, "type") ?? existing.type);
+      if (!type) return res.status(400).json({ error: "BadRequest", message: "Invalid type" });
 
       const name = readOptionalString(req.body, "name");
       const description = readOptionalString(req.body, "description");
       const apiKey = readOptionalString(req.body, "apiKey");
       const disabled = readOptionalBoolean(req.body, "disabled");
 
-      await resolvedStore.update({
-        uid,
+      const updated = await store.update({
+        ...existing,
         type,
         name,
         description,
         apiKey,
         disabled,
       });
-      const updated = await resolvedStore.read(uid, type);
       res.json(updated);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Unauthorized";
       if (isServerMisconfiguredAuthError(message)) {
-        console.error("[dataset-subscribers] server misconfiguration:", message);
+        console.error("[dataset-sources] server misconfiguration:", message);
         return res.status(500).json({ error: "ServerMisconfigured", message });
       }
       const status = message === "NotFound" ? 404 : message.startsWith("BadRequest") ? 400 : 401;
@@ -129,19 +144,16 @@ export function createDatasetSubscribersRouter(): Router {
     }
   });
 
-  router.delete("/:type", requireAuth, async (req: Request, res: Response) => {
+  router.delete("/:uri", requireAuth, async (req: Request, res: Response) => {
     try {
-      const { uid } = req.user!;
-      const type = asSubscriberType(req.params.type);
-      if (!type) {
-        return res.status(400).json({ error: "BadRequest", message: "Invalid type" });
-      }
-      await resolvedStore.delete(uid, type);
+      const uri = paramUri(req);
+      if (!uri) return res.status(400).json({ error: "BadRequest", message: "Invalid uri" });
+      await store.delete(uri);
       res.status(204).end();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Unauthorized";
       if (isServerMisconfiguredAuthError(message)) {
-        console.error("[dataset-subscribers] server misconfiguration:", message);
+        console.error("[dataset-sources] server misconfiguration:", message);
         return res.status(500).json({ error: "ServerMisconfigured", message });
       }
       const status = message.startsWith("BadRequest") ? 400 : 401;
@@ -151,3 +163,4 @@ export function createDatasetSubscribersRouter(): Router {
 
   return router;
 }
+

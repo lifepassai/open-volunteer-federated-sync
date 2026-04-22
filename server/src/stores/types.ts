@@ -39,3 +39,5 @@ export interface SyncronizingStore<T extends StoreRecord> {
     snapshot: (query: AnyQuery) => Promise<SnapshotResult>;
     batchRead: (batch: BatchRead) => Promise<BatchReadResult<T>>;
 }
+
+export type DatasetType = "volunteer" | "organization" | "opportunity";

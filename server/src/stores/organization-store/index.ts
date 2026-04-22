@@ -16,10 +16,6 @@ export function resolveOrganizationStore(): OrganizationStore {
     throw new Error(`Organization store: unsupported backend "${backend}" (file is the default)`);
   }
 
-  cached = new FileOrganizationStore({
-    dataFile:
-      process.env.ORGANIZATION_DATA_FILE ||
-      (process.env.DATA_DIR ? `${process.env.DATA_DIR}/organizations.json` : "./data/organizations.json"),
-  });
+  cached = new FileOrganizationStore();
   return cached;
 }

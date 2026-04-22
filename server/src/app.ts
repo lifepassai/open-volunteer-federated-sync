@@ -2,12 +2,11 @@ import express from "express";
 import path from "node:path";
 import fs from "node:fs";
 import { fileURLToPath } from "node:url";
-import { resolveVolunteerStore } from "./stores/volunteer-store/index.js";
-import { resolveDatasetSubscribersStore } from "./stores/dataset-subscribers-store/index.js";
 import { createAccountsRouter } from "./routers/account.js";
 import { createLoginRouter } from "./routers/login.js";
-import { createDatasetRouter } from "./routers/dataset.js";
+import { createVolunteerDatasetRouter } from "./routers/dataset.js";
 import { createDatasetSubscribersRouter } from "./routers/dataset-subscribers.js";
+import { createDatasetSourcesRouter } from "./routers/dataset-sources.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -24,11 +23,10 @@ export function createApp() {
   app.use("/api/accounts", createAccountsRouter());
 
   // Our managed datasets
-  const volunteerStore = resolveVolunteerStore();
-  app.use("/api/datasets/volunteers", createDatasetRouter(volunteerStore));
+  app.use("/api/datasets/volunteers", createVolunteerDatasetRouter());
 
-  const datasetSubscribersStore = resolveDatasetSubscribersStore();
-  app.use("/api/dataset-subscribers", createDatasetSubscribersRouter(datasetSubscribersStore));
+  app.use("/api/dataset-subscribers", createDatasetSubscribersRouter());
+  app.use("/api/dataset-sources", createDatasetSourcesRouter());
 
   const publicDir = path.join(__dirname, "..", "public");
   if (fs.existsSync(publicDir)) {

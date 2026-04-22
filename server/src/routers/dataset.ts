@@ -1,6 +1,7 @@
 import { Router } from "express";
 import type { Request, Response } from "express";
 import type { SyncronizingStore, AnyQuery, SinceQuery, BatchRead, StoreRecord } from "../stores/types.js";
+import { resolveVolunteerStore } from "../stores/volunteer-store/index.js";
 
 
 type CrudStore<T extends StoreRecord> = {
@@ -39,4 +40,9 @@ export function createDatasetRouter<T extends StoreRecord>(store: SyncronizingSt
     });
 
     return router;
+}
+
+export function createVolunteerDatasetRouter(): Router {
+    const store = resolveVolunteerStore();
+    return createDatasetRouter(store);
 }

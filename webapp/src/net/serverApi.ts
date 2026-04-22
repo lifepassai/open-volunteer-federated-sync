@@ -1,7 +1,7 @@
-import type { DatasetSubscriberType, DatasetSubscriber } from './types'
+import type { DatasetType, DatasetSubscriber, DatasetSource, VolunteerDatasetRow } from './types'
 import { useAccountStore } from '../stores/accountStore'
 
-export type { DatasetSubscriberType, DatasetSubscriber } from './types'
+export type { DatasetType, DatasetSubscriber, DatasetSource, VolunteerDatasetRow } from './types'
 type ApiError = { failure?: { code: number, message: string, details?: string[] } }
 
 export type AccountRow = {
@@ -50,14 +50,18 @@ async function request<T>(
   throw new Error( (data as ApiError)?.failure?.message || `Request failed with ${res.status}: ${res.statusText}`)
 }
 
-export async function listDatasetSubscribers(params: { type?: DatasetSubscriberType }) {
+export async function listVolunteerDataset(): Promise<VolunteerDatasetRow[]> {
+  return await request<VolunteerDatasetRow[]>(`/api/datasets/volunteers`, {})
+}
+
+export async function listDatasetSubscribers(params: { type?: DatasetType }) {
   const q = params.type ? `?type=${encodeURIComponent(params.type)}` : ''
   return await request<DatasetSubscriber[]>(`/api/dataset-subscribers${q}`, {
   })
 }
 
 export async function createDatasetSubscriber(params: {
-    type: DatasetSubscriberType
+    type: DatasetType
     name?: string
     description?: string
     apiKey?: string
@@ -76,7 +80,7 @@ export async function createDatasetSubscriber(params: {
 }
 
 export async function updateDatasetSubscriber(params: {
-    type: DatasetSubscriberType
+    type: DatasetType
     name?: string
     description?: string
     apiKey?: string
@@ -93,8 +97,60 @@ export async function updateDatasetSubscriber(params: {
   })
 }
 
-export async function deleteDatasetSubscriber(params: { type: DatasetSubscriberType }) {
+export async function deleteDatasetSubscriber(params: { type: DatasetType }) {
   return await request<void>(`/api/dataset-subscribers/${encodeURIComponent(params.type)}`, {
+    method: 'DELETE',
+  })
+}
+
+export async function listDatasetSources(params: { type?: DatasetType }) {
+  const q = params.type ? `?type=${encodeURIComponent(params.type)}` : ''
+  return await request<DatasetSource[]>(`/api/dataset-sources${q}`, {})
+}
+
+export async function createDatasetSource(params: {
+  uri: string
+  type: DatasetType
+  name?: string
+  description?: string
+  apiKey?: string
+  disabled?: boolean
+}) {
+  return await request<DatasetSource>(`/api/dataset-sources`, {
+    method: 'POST',
+    body: {
+      uri: params.uri,
+      type: params.type,
+      name: params.name,
+      description: params.description,
+      apiKey: params.apiKey,
+      disabled: params.disabled,
+    },
+  })
+}
+
+export async function updateDatasetSource(params: {
+  uri: string
+  type: DatasetType
+  name?: string
+  description?: string
+  apiKey?: string
+  disabled?: boolean
+}) {
+  return await request<DatasetSource>(`/api/dataset-sources/${encodeURIComponent(params.uri)}`, {
+    method: 'PATCH',
+    body: {
+      type: params.type,
+      name: params.name,
+      description: params.description,
+      apiKey: params.apiKey,
+      disabled: params.disabled,
+    },
+  })
+}
+
+export async function deleteDatasetSource(params: { uri: string }) {
+  return await request<void>(`/api/dataset-sources/${encodeURIComponent(params.uri)}`, {
     method: 'DELETE',
   })
 }

@@ -16,10 +16,6 @@ export function resolveVolunteerStore(): VolunteerStore {
     throw new Error(`Volunteer store: unsupported backend "${backend}" (file is the default)`);
   }
 
-  cached = new FileVolunteerStore({
-    dataFile:
-      process.env.VOLUNTEER_DATA_FILE ||
-      (process.env.DATA_DIR ? `${process.env.DATA_DIR}/volunteers.json` : "./data/volunteers.json"),
-  });
+  cached = new FileVolunteerStore();
   return cached!;
 }

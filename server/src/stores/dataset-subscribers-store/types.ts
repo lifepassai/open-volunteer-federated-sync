@@ -1,8 +1,8 @@
-export type DatasetSubscriberType = "volunteer" | "organization" | "opportunity";
+import type { DatasetType } from "../types.js";
 
 export interface DatasetSubscriber {
     uid: string; // account getting access
-    type: DatasetSubscriberType;
+    type: DatasetType;
     disabled?: boolean;
     name?: string;
     description?: string;
@@ -12,7 +12,7 @@ export interface DatasetSubscriber {
 
 export interface DatasetSubscriberUpdate {
     uid: string;
-    type: DatasetSubscriberType;
+    type: DatasetType;
     name?: string;
     disabled?: boolean;
     description?: string;
@@ -21,8 +21,8 @@ export interface DatasetSubscriberUpdate {
 
 export interface DatasetSubscribersStore {
     list: () => Promise<DatasetSubscriber[]>;
-    read: (uid: string, type: DatasetSubscriberType) => Promise<DatasetSubscriber | undefined>;
+    read: (uid: string, type: DatasetType) => Promise<DatasetSubscriber | undefined>;
     create: (input: DatasetSubscriber) => Promise<DatasetSubscriber>;
     update: (datasetSubscriber: DatasetSubscriberUpdate) => Promise<void>;
-    delete: (uid: string, type: DatasetSubscriberType) => Promise<void>;
+    delete: (uid: string, type: DatasetType) => Promise<void>;
 }
