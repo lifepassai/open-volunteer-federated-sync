@@ -1,4 +1,4 @@
-import type { DatasetType } from "../types.js";
+import type { DatasetType } from "../types/sync.js";
 
 export interface DatasetSubscriber {
     uid: string; // account getting access

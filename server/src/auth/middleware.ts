@@ -4,7 +4,7 @@ import type { Account } from "../stores/account-store/types.js";
 import { resolveAccountStore } from "../stores/account-store/index.js";
 import { resolveDatasetSubscribersStore } from "../stores/dataset-subscribers-store/index.js";
 import { resolveApiKeysStore } from "../stores/api-keys-store/index.js";
-import { DatasetType } from "../stores/types.js";
+import { DatasetType } from "../stores/types/sync.js";
 
 const accountStore = resolveAccountStore();
 

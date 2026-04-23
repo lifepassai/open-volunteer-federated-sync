@@ -24,7 +24,7 @@ export function GoogleLoginButton({ presentation = 'icon', onLoggedIn }: GoogleL
     const idToken = credentialResponse.credential
     if (!idToken) return
     try {
-      const res = await fetch('/google-login', {
+      const res = await fetch('/api/google-login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ idToken }),

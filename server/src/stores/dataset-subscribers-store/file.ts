@@ -4,7 +4,7 @@ import nodeCrypto from "node:crypto";
 
 import type { DatasetSubscriber, DatasetSubscribersStore, DatasetSubscriberUpdate } from "./types.js";
 import { defaultStoreDir, readJsonFile, writeJsonAtomic } from "../../utils/file.js";
-import type { DatasetType } from "../types.js";
+import type { DatasetType } from "../types/sync.js";
 
 function subscriberToFilename(uid: string, type: DatasetType) {
   return `${encodeURIComponent(uid)}.${type}.json`;

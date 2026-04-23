@@ -1,8 +1,16 @@
 import * as fs from "node:fs/promises";
 import path from "node:path";
-import nodeCrypto from "node:crypto";
 
-import type { AnyQuery, BatchRead, BatchReadResult, SinceQuery, SnapshotResult, UpdateResult } from "../types.js";
+import type {
+  AnyQuery,
+  BatchRead,
+  BatchReadResult,
+  DatasetUpdateResult,
+  DatasetUpdates,
+  QueryUpdatesResult,
+  SinceQuery,
+  SnapshotResult,
+} from "../types/sync.js";
 import type { CreateVolunteerParams, UpdateVolunteerParams, Volunteer, VolunteerStore } from "./types.js";
 import { defaultStoreDir, readJsonFile, writeJsonAtomic } from "../../utils/file.js";
 
@@ -33,6 +41,29 @@ export class FileVolunteerStore implements VolunteerStore {
     return path.join(this.dataDir, uriToFilename(uri));
   }
 
+  private async _listAllRecords(): Promise<Volunteer[]> {
+    let names: string[];
+    try {
+      names = await fs.readdir(this.dataDir);
+    } catch (err: unknown) {
+      if (err && typeof err === "object" && "code" in err && (err as { code?: string }).code === "ENOENT")
+        return [];
+      throw err;
+    }
+    const out: Volunteer[] = [];
+    for (const name of names) {
+      if (!name.endsWith(".json")) continue;
+      const raw = await readJsonFile(path.join(this.dataDir, name));
+      if (!raw) continue;
+      try {
+        out.push(normalizeVolunteer(raw));
+      } catch {
+        // skip invalid
+      }
+    }
+    return out;
+  }
+
   async create(input: CreateVolunteerParams) {
     const now = new Date().toISOString();
     const volunteer = normalizeVolunteer({
@@ -57,7 +88,7 @@ export class FileVolunteerStore implements VolunteerStore {
 
   async read(id: string) {
     const raw = await readJsonFile(this._path(id));
-    if (!raw) return undefined;
+    if (!raw) return null;
     return normalizeVolunteer(raw);
   }
 
@@ -85,42 +116,23 @@ export class FileVolunteerStore implements VolunteerStore {
     }
   }
 
-  async list() {
-    let names: string[];
-    try {
-      names = await fs.readdir(this.dataDir);
-    } catch (err: unknown) {
-      if (err && typeof err === "object" && "code" in err && (err as { code?: string }).code === "ENOENT")
-        return [];
-      throw err;
-    }
-    const out: ReturnType<typeof normalizeVolunteer>[] = [];
-    for (const name of names) {
-      if (!name.endsWith(".json")) continue;
-      const raw = await readJsonFile(path.join(this.dataDir, name));
-      if (!raw) continue;
-      try {
-        out.push(normalizeVolunteer(raw));
-      } catch {
-        // skip invalid
-      }
-    }
-    return out;
+  async list(_cursor?: string) {
+    const records = await this._listAllRecords();
+    return { records };
   }
 
-  async updates(since: SinceQuery): Promise<UpdateResult<Volunteer>> {
-    const all = await this.list();
-    const cursor = typeof since?.since === "string" ? since.since : "";
-    const updates = cursor ? all.filter((v) => v.updated > cursor) : all;
+  async queryUpdates(query: SinceQuery): Promise<QueryUpdatesResult<Volunteer>> {
+    const all = await this._listAllRecords();
+    const since = typeof query?.since === "string" ? query.since : "";
+    const updates = since ? all.filter((v) => v.updated > since) : all;
     return {
       updates,
-      deletes: [],
-      since: new Date().toISOString(),
+      deleted: [],
     };
   }
 
   async snapshot(_query: AnyQuery): Promise<SnapshotResult> {
-    const all = await this.list();
+    const all = await this._listAllRecords();
     return {
       uris: all.map((v) => v.uri),
       batchSize: 100,
@@ -130,11 +142,56 @@ export class FileVolunteerStore implements VolunteerStore {
   async batchRead(batch: BatchRead): Promise<BatchReadResult<Volunteer>> {
     const uris = Array.isArray(batch?.uris) ? batch.uris : [];
     const records: Volunteer[] = [];
+    const deleted: string[] = [];
     for (const uri of uris) {
       if (typeof uri !== "string") continue;
       const v = await this.read(uri);
       if (v) records.push(v);
+      else deleted.push(uri);
     }
-    return { records };
+    return deleted.length > 0 ? { records, deleted } : { records };
+  }
+
+  async updates(input: DatasetUpdates<Volunteer>): Promise<DatasetUpdateResult> {
+    const now = new Date().toISOString();
+    const updated: string[] = [];
+    const deleted: string[] = [];
+    const ignored: string[] = [];
+
+    const incomingUpdates = Array.isArray(input?.updates) ? input.updates : [];
+    const incomingDeletes = Array.isArray(input?.deletes) ? input.deletes : [];
+
+    for (const record of incomingUpdates) {
+      try {
+        const existing = typeof record?.uri === "string" ? await this.read(record.uri) : null;
+        const normalized = normalizeVolunteer({
+          ...(existing ?? {}),
+          ...(record as Record<string, unknown>),
+          created:
+            (record as Record<string, unknown>)?.created ??
+            existing?.created ??
+            now,
+          updated: now,
+        });
+        await writeJsonAtomic(this._path(normalized.uri), normalized);
+        updated.push(normalized.uri);
+      } catch {
+        if (record && typeof record === "object" && "uri" in record && typeof (record as any).uri === "string") {
+          ignored.push((record as any).uri);
+        }
+      }
+    }
+
+    for (const uri of incomingDeletes) {
+      if (typeof uri !== "string" || uri.length === 0) continue;
+      try {
+        await this.delete(uri);
+        deleted.push(uri);
+      } catch {
+        ignored.push(uri);
+      }
+    }
+
+    return { updated, deleted, ignored };
   }
 }

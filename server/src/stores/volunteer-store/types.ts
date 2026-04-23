@@ -1,28 +1,26 @@
-import type { SyncronizingStore, StoreRecord } from "../types.js";
+import type { URI, SyncronizingStore, SyncRecord } from "../types/sync.js";
+import type { CrudStore } from "../types/crud.js";
+
 
 /** Volunteer profile (minimal; extend as needed). */
-export interface Volunteer extends StoreRecord {
+export interface Volunteer extends SyncRecord {
   name?: string;
   location?: string;
   created: string;
 }
 
 export interface CreateVolunteerParams {
-  uri: string;
+  uri: URI;
   name?: string;
   location?: string;
 }
 
 export interface UpdateVolunteerParams {
-  uri: string;
+  uri: URI;
   name?: string;
   location?: string;
 }
 
-export interface VolunteerStore extends SyncronizingStore<Volunteer>{
-  list: () => Promise<Volunteer[]>;
-  create: (input: CreateVolunteerParams) => Promise<Volunteer>;
-  read: (uri: string) => Promise<Volunteer | undefined>;
-  update: (volunteer: UpdateVolunteerParams) => Promise<Volunteer>;
-  delete: (id: string) => Promise<void>;
+export interface VolunteerStore
+    extends SyncronizingStore<Volunteer>, CrudStore<URI, Volunteer, CreateVolunteerParams, UpdateVolunteerParams> {
 }

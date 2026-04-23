@@ -1,20 +1,15 @@
 import { Router } from "express";
 import type { Request, Response } from "express";
-import type { SyncronizingStore, AnyQuery, SinceQuery, BatchRead, StoreRecord, DatasetUpdates, BatchRecords } from "../../stores/types.js";
+import type { SyncronizingStore, AnyQuery, SinceQuery, BatchRead, SyncRecord, DatasetUpdates } from "../../stores/types/sync.js";
 import { resolveVolunteerStore } from "../../stores/volunteer-store/index.js";
-import { DatasetType } from "../../stores/types.js";
+import { DatasetType } from "../../stores/types/sync.js";
 import { createDatasetSubscriberAuthMiddleware } from "../../auth/middleware.js";
 import { firstParams } from "../../utils/misc.js";
 import { requireAdmin } from "../../auth/middleware.js";
 //import { resolveOrganizationStore } from "../../stores/organization-store/index.js";
 //import { resolveOpportunityStore } from "../../stores/opportunity-store/index.js";
 
-type CrudStore<T extends StoreRecord> = {
-    list: () => Promise<T[]>;
-    read: (uri: string) => Promise<T | undefined>;
-};
-
-export function createDatasetSyncRouter<T extends StoreRecord>(type: DatasetType, store: SyncronizingStore<T> & CrudStore<T>): Router {
+export function createDatasetSyncRouter<T extends SyncRecord>(type: DatasetType, store: SyncronizingStore<T>): Router {
     const router = Router();
 
     const requireSubscriberAuth = createDatasetSubscriberAuthMiddleware(type);
@@ -27,11 +22,6 @@ export function createDatasetSyncRouter<T extends StoreRecord>(type: DatasetType
         res.json(result);
     });
 
-    router.put("/batch-update", requireAdmin, async (req: Request, res: Response) => {
-        const result = await store.batchUpdate(req.body as BatchRecords<T> );
-        res.json(result);
-    });
-
     // 
     // Pull
     //
@@ -39,7 +29,7 @@ export function createDatasetSyncRouter<T extends StoreRecord>(type: DatasetType
     // List records and deletes since a given time
     router.get("/updates", requireSubscriberAuth, async (req: Request, res: Response) => {
         const query = firstParams(req) as SinceQuery;
-        const result = await store.snapshot(query);
+        const result = await store.queryUpdates(query);
         res.json(result);
     });
 
@@ -55,14 +45,6 @@ export function createDatasetSyncRouter<T extends StoreRecord>(type: DatasetType
         const result = await store.batchRead(req.body as BatchRead);
         res.json(result);
     });
-
-    /*
-    router.get("/:uri", async (req: Request, res: Response) => {
-        const uri = Array.isArray(req.params.uri) ? req.params.uri[0] : req.params.uri;
-        const result = await store.read(uri);
-        res.json(result);
-    });
-    */
 
     return router;
 }

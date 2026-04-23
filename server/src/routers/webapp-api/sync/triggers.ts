@@ -1,22 +1,17 @@
 import { Router } from "express";
 import type { Request, Response } from "express";
-import type { SyncronizingStore, AnyQuery, SinceQuery, BatchRead, StoreRecord, DatasetUpdates } from "../../../stores/types.js";
+import type { SyncronizingStore, AnyQuery, SyncRecord, DatasetUpdates } from "../../../stores/types/sync.js";
 import { resolveVolunteerStore } from "../../../stores/volunteer-store/index.js";
 import { resolveDatasetSourceStore } from "../../../stores/dataset-sources-store/index.js";
-import { DatasetType } from "../../../stores/types.js";
+import { DatasetType } from "../../../stores/types/sync.js";
 import { requireAdmin } from "../../../auth/middleware.js";
 import { firstParams, fullJson } from "../../../utils/misc.js";
 
 const datasetSourceStore = resolveDatasetSourceStore();
 
-type CrudStore<T extends StoreRecord> = {
-    list: () => Promise<T[]>;
-    read: (uri: string) => Promise<T | undefined>;
-};
-
 const UNIX_EPOCH = new Date(0).toISOString();
 
-export function createSyncTriggersRouter<T extends StoreRecord>(type: DatasetType, store: SyncronizingStore<T> & CrudStore<T>): Router {
+export function createSyncTriggersRouter<T extends SyncRecord>(type: DatasetType, store: SyncronizingStore<T>): Router {
     const router = Router();
   
     // trigger an "update" PULL using a dataset source
@@ -56,7 +51,6 @@ export function createSyncTriggersRouter<T extends StoreRecord>(type: DatasetTyp
         const result = await store.snapshot(req.body as AnyQuery);
         res.json(result);
     });
-
 
     return router;
 }

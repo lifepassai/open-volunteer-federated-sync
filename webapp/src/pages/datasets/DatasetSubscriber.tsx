@@ -1,5 +1,5 @@
 import { Button, Card } from '@heroui/react'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { GoogleLoginButton } from '../../components/GoogleLoginButton'
 import { useAccountStore } from '../../stores/accountStore'
 import {
@@ -42,8 +42,8 @@ export function DatasetSubscriber(props: {
     return rows.find((r) => r.uid === account.uid && r.type === type) ?? null
   }, [account, rows, type])
 
-  const refresh = async () => {
-    if (!account) return
+  const refresh = useCallback(async () => {
+    if (!account?.uid) return
     setLoading(true)
     setError(null)
     try {
@@ -54,13 +54,15 @@ export function DatasetSubscriber(props: {
     } finally {
       setLoading(false)
     }
-  }
+  }, [account?.uid, type])
 
   useEffect(() => {
-    if (!account) return
-    void refresh()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [account?.uid, type])
+    if (!account?.uid) return
+    const t = window.setTimeout(() => {
+      void refresh()
+    }, 0)
+    return () => window.clearTimeout(t)
+  }, [account?.uid, refresh])
 
   const openSubscribe = () => {
     setMode('subscribe')

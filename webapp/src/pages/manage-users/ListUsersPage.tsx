@@ -39,8 +39,10 @@ export function ListUsersPage() {
 
   useEffect(() => {
     if (!isAdmin) return
-    void refresh()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const t = window.setTimeout(() => {
+      void refresh()
+    }, 0)
+    return () => window.clearTimeout(t)
   }, [isAdmin])
 
   const openDelete = (uid: string) => {

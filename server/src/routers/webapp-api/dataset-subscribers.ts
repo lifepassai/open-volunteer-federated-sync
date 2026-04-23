@@ -1,8 +1,8 @@
 import { Router } from "express";
 import type { Request, Response } from "express";
-import { requireAuth } from "../auth/middleware.js";
-import { resolveDatasetSubscribersStore } from "../stores/dataset-subscribers-store/index.js";
-import type { DatasetType } from "../stores/types.js";
+import { requireAuth } from "../../auth/middleware.js";
+import { resolveDatasetSubscribersStore } from "../../stores/dataset-subscribers-store/index.js";
+import type { DatasetType } from "../../stores/types/sync.js";
 
 function isServerMisconfiguredAuthError(message: string) {
   return (

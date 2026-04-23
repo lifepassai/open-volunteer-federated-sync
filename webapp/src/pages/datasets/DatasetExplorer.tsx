@@ -47,18 +47,24 @@ export function DatasetExplorer(props: DatasetExplorerProps) {
   }, [fetchRows])
 
   useEffect(() => {
-    void load()
+    const t = window.setTimeout(() => {
+      void load()
+    }, 0)
+    return () => window.clearTimeout(t)
   }, [load])
 
   const totalRows = rows.length
   const pageCount = totalRows === 0 ? 0 : Math.ceil(totalRows / PAGE_SIZE)
 
   useEffect(() => {
-    if (pageCount === 0) {
-      setPageIndex(0)
-      return
-    }
-    setPageIndex((prev) => Math.min(prev, pageCount - 1))
+    const t = window.setTimeout(() => {
+      if (pageCount === 0) {
+        setPageIndex(0)
+        return
+      }
+      setPageIndex((prev) => Math.min(prev, pageCount - 1))
+    }, 0)
+    return () => window.clearTimeout(t)
   }, [pageCount, totalRows])
 
   const safePage = pageCount === 0 ? 0 : Math.min(pageIndex, pageCount - 1)

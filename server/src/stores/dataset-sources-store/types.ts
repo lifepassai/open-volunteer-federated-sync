@@ -1,4 +1,4 @@
-import type { DatasetType } from "../types.js";
+import type { DatasetType } from "../types/sync.js";
 
 // This is the unique key.  One dataset type may have multiple sources, unique by name
 export interface DatasetSourceKey {

@@ -2,11 +2,11 @@ import * as fs from "node:fs/promises";
 import path from "node:path";
 
 import type { DatasetSource, DatasetSourceKey, DatasetSourceStore } from "./types.js";
-import type { DatasetType } from "../types.js";
+import type { DatasetType } from "../types/sync.js";
 import { defaultStoreDir, readJsonFile, writeJsonAtomic } from "../../utils/file.js";
 
 function keyToFilename(key: DatasetSourceKey) {
-  return `${encodeURIComponent(key.uid)}_${key.type}.json`;
+  return `${key.type}_${encodeURIComponent(key.name)}.json`;
 }
 
 function normalizeDatasetSource(input: unknown): DatasetSource {
@@ -19,31 +19,29 @@ function normalizeDatasetSource(input: unknown): DatasetSource {
     description,
     baseUrl,
     apiKey,
-    lastFullSync,
-    lastIncrementalSync,
+    lastSnapshotSync,
+    lastUpdateSync,
   } = input as Record<string, unknown>;
 
   if (typeof uid !== "string" || uid.length === 0) throw new Error("Invalid uid");
   if (type !== "volunteer" && type !== "organization" && type !== "opportunity") throw new Error("Invalid type");
   if (disabled !== undefined && typeof disabled !== "boolean") throw new Error("Invalid disabled");
-  if (name !== undefined && typeof name !== "string") throw new Error("Invalid name");
+  if (!name || typeof name !== "string") throw new Error("Invalid name");
   if (description !== undefined && typeof description !== "string") throw new Error("Invalid description");
   if (baseUrl !== undefined && typeof baseUrl !== "string") throw new Error("Invalid baseUrl");
   if (apiKey !== undefined && typeof apiKey !== "string") throw new Error("Invalid apiKey");
-  if (lastFullSync !== undefined && typeof lastFullSync !== "string") throw new Error("Invalid lastFullSync");
-  if (lastIncrementalSync !== undefined && typeof lastIncrementalSync !== "string")
-    throw new Error("Invalid lastIncrementalSync");
+  if (lastSnapshotSync !== undefined && typeof lastSnapshotSync !== "string") throw new Error("Invalid lastSnapshotSync");
+  if (lastUpdateSync !== undefined && typeof lastUpdateSync !== "string") throw new Error("Invalid lastUpdateSync");
 
   return {
-    uid,
     type,
     disabled,
     name,
     description,
     baseUrl,
     apiKey,
-    lastFullSync,
-    lastIncrementalSync,
+    lastSnapshotSync,
+    lastUpdateSync,
   };
 }
 
@@ -60,7 +58,7 @@ export class FileDatasetSourceStore implements DatasetSourceStore {
 
   async create(input: DatasetSource) {
     const datasetSource = normalizeDatasetSource(input);
-    const filePath = this._path({ uid: datasetSource.uid, type: datasetSource.type });
+    const filePath = this._path({ name: datasetSource.name, type: datasetSource.type });
 
     try {
       await fs.access(filePath);
@@ -81,16 +79,16 @@ export class FileDatasetSourceStore implements DatasetSourceStore {
   }
 
   async update(datasetSource: DatasetSource) {
-    const existing = await this.read({ uid: datasetSource.uid, type: datasetSource.type });
+    const existing = await this.read({ name: datasetSource.name, type: datasetSource.type });
     if (!existing) throw new Error("NotFound");
 
     const merged = normalizeDatasetSource({
       ...existing,
       ...datasetSource,
-      uid: datasetSource.uid,
+      name: datasetSource.name,
       type: datasetSource.type,
     });
-    await writeJsonAtomic(this._path({ uid: merged.uid, type: merged.type }), merged);
+    await writeJsonAtomic(this._path({ name: merged.name, type: merged.type }), merged);
     return merged;
   }
 
@@ -129,10 +127,5 @@ export class FileDatasetSourceStore implements DatasetSourceStore {
   async listByType(type: DatasetType) {
     const all = await this.listAll();
     return all.filter((s) => s.type === type);
-  }
-
-  async listByUid(uid: string) {
-    const all = await this.listAll();
-    return all.filter((s) => s.uid === uid);
   }
 }
