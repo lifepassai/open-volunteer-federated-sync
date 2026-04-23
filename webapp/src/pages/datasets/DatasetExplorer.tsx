@@ -1,5 +1,6 @@
-import { Button, Card } from '@heroui/react'
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useState } from 'react'
+import { Button } from '@heroui/react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { CollapsibleCard } from '../../components/CollapsibleCard'
 
 const PAGE_SIZE = 10
 
@@ -10,30 +11,19 @@ function columnOrder(keys: string[]) {
   return [...pref, ...rest]
 }
 
-export type DatasetExplorerHandle = {
-  reload: () => void
-}
-
 export type DatasetExplorerProps = {
   title?: string
   description?: string
-  /** When true, omit outer Card and title block (for use inside CollapsibleCard). */
-  embedded?: boolean
+  defaultCollapsed?: boolean
   fetchRows: () => Promise<Record<string, unknown>[]>
-  /** Notified when a load starts / finishes (e.g. for CollapsibleCard `refreshing`). */
-  onLoadingChange?: (loading: boolean) => void
 }
 
-export const DatasetExplorer = forwardRef<DatasetExplorerHandle, DatasetExplorerProps>(function DatasetExplorer(
-  props,
-  ref,
-) {
+export function DatasetExplorer(props: DatasetExplorerProps) {
   const {
     title = 'Dataset',
     description = 'Browse rows returned by the dataset list API.',
-    embedded = false,
+    defaultCollapsed = true,
     fetchRows,
-    onLoadingChange,
   } = props
 
   const [rows, setRows] = useState<Record<string, unknown>[]>([])
@@ -43,7 +33,6 @@ export const DatasetExplorer = forwardRef<DatasetExplorerHandle, DatasetExplorer
 
   const load = useCallback(async () => {
     setLoading(true)
-    onLoadingChange?.(true)
     setError(null)
     try {
       const list = await fetchRows()
@@ -54,19 +43,8 @@ export const DatasetExplorer = forwardRef<DatasetExplorerHandle, DatasetExplorer
       setRows([])
     } finally {
       setLoading(false)
-      onLoadingChange?.(false)
     }
-  }, [fetchRows, onLoadingChange])
-
-  useImperativeHandle(
-    ref,
-    () => ({
-      reload: () => {
-        void load()
-      },
-    }),
-    [load],
-  )
+  }, [fetchRows])
 
   useEffect(() => {
     void load()
@@ -100,20 +78,11 @@ export const DatasetExplorer = forwardRef<DatasetExplorerHandle, DatasetExplorer
     return String(v)
   }
 
-  const header = embedded ? (
+  const header = (
     <p className="text-sm">
       <span className="text-foreground/60">Total rows: </span>
       <span className="font-medium">{loading ? '…' : totalRows}</span>
     </p>
-  ) : (
-    <div className="min-w-0">
-      <h3 className="truncate">{title}</h3>
-      <p className="text-sm text-foreground/70">{description}</p>
-      <p className="mt-2 text-sm">
-        <span className="text-foreground/60">Total rows: </span>
-        <span className="font-medium">{loading ? '…' : totalRows}</span>
-      </p>
-    </div>
   )
 
   const body = (
@@ -190,21 +159,18 @@ export const DatasetExplorer = forwardRef<DatasetExplorerHandle, DatasetExplorer
     </>
   )
 
-  if (embedded) {
-    return (
+  return (
+    <CollapsibleCard
+      title={title}
+      description={description}
+      defaultCollapsed={defaultCollapsed}
+      refreshing={loading}
+      onRefresh={() => void load()}
+    >
       <div className="space-y-4">
         {header}
         {body}
       </div>
-    )
-  }
-
-  return (
-    <Card>
-      <Card.Content className="space-y-4 p-4">
-        {header}
-        {body}
-      </Card.Content>
-    </Card>
+    </CollapsibleCard>
   )
-})
+}

@@ -1,6 +1,6 @@
 import { Router, type Request, type Response } from "express";
-import { resolveAccountStore } from "../stores/account-store/index.js";
-import { requireAdmin, requireOwner } from "../auth/middleware.js";
+import { resolveAccountStore } from "../../stores/account-store/index.js";
+import { requireAdmin, requireOwner } from "../../auth/middleware.js";
 
 const store = resolveAccountStore();
 

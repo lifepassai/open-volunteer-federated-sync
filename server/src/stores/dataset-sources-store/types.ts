@@ -1,28 +1,24 @@
 import type { DatasetType } from "../types.js";
 
-export interface DatasetSource {
-    uri: string; // unique key
+// This is the unique key.  One dataset type may have multiple sources, unique by name
+export interface DatasetSourceKey {
     type: DatasetType;
-    disabled?: boolean;
-    name?: string;
-    description?: string;
-    created: string;
-    apiKey?: string;
-    lastFullSync?: string;
-    lastIncrementalSync?: string;
+    name: string;
 }
 
-export interface DatasetSourceUpdate {
-    type: DatasetType;
-    name?: string;
+export interface DatasetSource extends DatasetSourceKey {
+    disabled?: boolean;
     description?: string;
+    baseUrl?: string;
     apiKey?: string;
+    lastSnapshotSync?: string;
+    lastUpdateSync?: string;
 }
 
 export interface DatasetSourceStore {
-    list: () => Promise<DatasetSource[]>;
-    read: (uri: string) => Promise<DatasetSource | undefined>;
-    create: (input: DatasetSource) => Promise<DatasetSource>;
-    update: (datasetSource: DatasetSource) => Promise<DatasetSource>;
-    delete: (id: string) => Promise<void>;
+    listByType: (type: DatasetType) => Promise<DatasetSource[]>;
+    read: (key: DatasetSourceKey) => Promise<DatasetSource | undefined>;
+    create: (create: DatasetSource) => Promise<DatasetSource>;
+    update: (update: DatasetSource) => Promise<DatasetSource>;
+    delete: (key: DatasetSourceKey) => Promise<void>;
 }

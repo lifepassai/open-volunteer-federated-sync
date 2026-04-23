@@ -1,9 +1,9 @@
 import { Router } from "express";
-import type { Account } from "../stores/account-store/types.js";
+import type { Account } from "../../stores/account-store/types.js";
 import type { Request, Response } from "express";
-import { verifyGoogleIdToken } from "../auth/google.js";
-import { randomBase64url } from "../utils/misc.js";
-import { resolveAccountStore } from "../stores/account-store/index.js";
+import { verifyGoogleIdToken } from "../../auth/google.js";
+import { randomBase64url } from "../../utils/misc.js";
+import { resolveAccountStore } from "../../stores/account-store/index.js";
 
 const store = resolveAccountStore();
 

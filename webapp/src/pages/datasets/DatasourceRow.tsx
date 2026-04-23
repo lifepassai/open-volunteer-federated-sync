@@ -1,12 +1,17 @@
-import { Card } from '@heroui/react'
+import { Button, Card } from '@heroui/react'
+import { useState } from 'react'
 import { IconPencil, IconTrash } from '../../components/icons'
 import type { DatasetSource } from '../../net/serverApi'
+import { FullSyncModal } from './FullSyncModal'
+import { UpdateSyncModal } from './UpdateSyncModal'
 
 function formatSyncTime(iso?: string) {
   if (!iso) return '—'
   const d = new Date(iso)
   return Number.isNaN(d.getTime()) ? '—' : d.toLocaleString()
 }
+
+type SyncMode = 'updates' | 'full'
 
 export function DatasourceRow(props: {
   source: DatasetSource
@@ -15,10 +20,47 @@ export function DatasourceRow(props: {
   onDelete: (source: DatasetSource) => void
 }) {
   const { source: s, loading, onEdit, onDelete } = props
+  const [syncMode, setSyncMode] = useState<SyncMode | null>(null)
+  const [syncLoading, setSyncLoading] = useState(false)
+  const [logText, setLogText] = useState<string>('')
+
+  const modalOpen = syncMode !== null
+  const anyLoading = loading || syncLoading
+
+  async function startSync() {
+    setSyncLoading(true)
+    setLogText('')
+
+    const path = '/examples/volunteer/updates.json'
+    setLogText((prev) => `${prev}${prev ? '\n\n' : ''}GET ${path}`)
+
+    try {
+      const res = await fetch(path, { method: 'GET' })
+      const contentType = res.headers.get('content-type') ?? ''
+
+      let payload: unknown
+      if (contentType.includes('application/json')) {
+        payload = await res.json()
+      } else {
+        payload = await res.text()
+      }
+
+      const pretty =
+        typeof payload === 'string' ? payload : JSON.stringify(payload, null, 2)
+
+      setLogText((prev) => `${prev}\n\n${res.status} ${res.statusText}\n${pretty}`)
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e)
+      setLogText((prev) => `${prev}\n\nERROR\n${msg}`)
+    } finally {
+      setSyncLoading(false)
+    }
+  }
 
   return (
-    <Card>
-      <Card.Content className="flex flex-col gap-3 p-4 md:flex-row md:items-center md:justify-between">
+    <>
+      <Card>
+        <Card.Content className="flex flex-col gap-3 p-4 md:flex-row md:items-center md:justify-between">
         <div className="min-w-0">
           <div className="flex min-w-0 items-center gap-2">
             <div className="truncate text-sm font-medium">{s.name ?? '—'}</div>
@@ -41,29 +83,78 @@ export function DatasourceRow(props: {
           </div>
         </div>
 
-        <div className="flex shrink-0 items-center gap-2">
-          <button
-            type="button"
-            onClick={() => onEdit(s)}
-            disabled={loading}
-            aria-label="Edit datasource"
-            title="Edit"
-            className="inline-flex items-center justify-center rounded-md p-2 text-slate-900 hover:bg-default-100 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-50 dark:text-slate-50 dark:hover:text-slate-200"
-          >
-            <IconPencil className="h-5 w-5" />
-          </button>
-          <button
-            type="button"
-            onClick={() => onDelete(s)}
-            disabled={loading}
-            aria-label="Delete datasource"
-            title="Delete"
-            className="inline-flex items-center justify-center rounded-md p-2 text-slate-900 hover:bg-default-100 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-50 dark:text-slate-50 dark:hover:text-slate-200"
-          >
-            <IconTrash className="h-5 w-5" />
-          </button>
+        <div className="flex shrink-0 flex-col items-end gap-2">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => onEdit(s)}
+              disabled={loading}
+              aria-label="Edit datasource"
+              title="Edit"
+              className="inline-flex items-center justify-center rounded-md p-2 text-slate-900 hover:bg-default-100 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-50 dark:text-slate-50 dark:hover:text-slate-200"
+            >
+              <IconPencil className="h-5 w-5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => onDelete(s)}
+              disabled={loading}
+              aria-label="Delete datasource"
+              title="Delete"
+              className="inline-flex items-center justify-center rounded-md p-2 text-slate-900 hover:bg-default-100 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-50 dark:text-slate-50 dark:hover:text-slate-200"
+            >
+              <IconTrash className="h-5 w-5" />
+            </button>
+          </div>
+
+          <div className="mt-2 flex items-center justify-end gap-2">
+            <Button
+              size="sm"
+              variant="secondary"
+              onPress={() => setSyncMode('updates')}
+              isDisabled={anyLoading}
+            >
+              Sync Updates
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              onPress={() => setSyncMode('full')}
+              isDisabled={anyLoading}
+            >
+              Full Sync
+            </Button>
+          </div>
         </div>
-      </Card.Content>
-    </Card>
+        </Card.Content>
+      </Card>
+
+      {modalOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => {
+              if (!anyLoading) setSyncMode(null)
+            }}
+            aria-hidden="true"
+          />
+          {syncMode === 'updates' ? (
+            <UpdateSyncModal
+              onClose={() => setSyncMode(null)}
+              onStart={startSync}
+              loading={anyLoading}
+              logText={logText}
+            />
+          ) : (
+            <FullSyncModal
+              onClose={() => setSyncMode(null)}
+              onStart={startSync}
+              loading={anyLoading}
+              logText={logText}
+            />
+          )}
+        </div>
+      ) : null}
+    </>
   )
 }

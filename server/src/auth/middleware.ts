@@ -2,8 +2,11 @@ import { timingSafeEqual } from "node:crypto";
 import type { NextFunction, Request, Response, RequestHandler } from "express";
 import type { Account } from "../stores/account-store/types.js";
 import { resolveAccountStore } from "../stores/account-store/index.js";
+import { resolveDatasetSubscribersStore } from "../stores/dataset-subscribers-store/index.js";
+import { resolveApiKeysStore } from "../stores/api-keys-store/index.js";
+import { DatasetType } from "../stores/types.js";
 
-const store = resolveAccountStore();
+const accountStore = resolveAccountStore();
 
 declare global {
   namespace Express {
@@ -53,7 +56,7 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
       }
 
       const { uid, sessionKey } = parsed;
-      const account = await store.read(uid);
+      const account = await accountStore.read(uid);
       if (!account) {
         res.status(401).json({ error: "Unauthorized", message: "Unknown user" });
         return;
@@ -108,6 +111,43 @@ export function requireOwner(req: Request, res: Response, next: NextFunction) {
     }
     next();
   });
+}
+
+const datasetSubscribersStore = resolveDatasetSubscribersStore();
+const apiKeysStore = resolveApiKeysStore();
+
+// For access to datasets, there first needs to be a valid api key (api-key-store)
+// and then subscription to the dataset (dataset-subscribers-store)
+export function createDatasetSubscriberAuthMiddleware( type: DatasetType ): RequestHandler {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      let apiKey = req.query.apiKey as string | undefined;
+      if( !apiKey ) {
+        const header = req.header("authorization") || req.header("Authorization");
+        apiKey = header?.match(/^ApiKey\s+(.+)$/i)?.[1]?.trim();
+        if (!apiKey) {
+          res.status(401).json({ error: "Unauthorized", message: "No API key found in header Authorization: ApiKey <apiKey> or query parameter apiKey=<apiKey>" });
+          return;
+        }
+
+        const apiKeyRecord = await apiKeysStore.read(apiKey);
+        if (!apiKeyRecord) {
+          res.status(401).json({ error: "Unauthorized", message: "Invalid API key" });
+          return;
+        }
+
+        const datasetSubscriber = await datasetSubscribersStore.read(apiKeyRecord.uid, type);
+        if (!datasetSubscriber) {
+          res.status(401).json({ error: "Unauthorized", message: `No subscription to dataset ${type} found for API key` });
+          return;
+        }
+
+        next();
+      }
+    } catch (err: unknown) {
+      next(err);
+    }
+  };
 }
 
 export type AuthenticatedRequest = Parameters<RequestHandler>[0] & { user: Account };

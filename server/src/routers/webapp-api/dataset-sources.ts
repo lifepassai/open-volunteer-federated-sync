@@ -3,6 +3,7 @@ import type { Request, Response } from "express";
 import { requireAuth } from "../auth/middleware.js";
 import type { DatasetSource } from "../stores/dataset-sources-store/types.js";
 import { resolveDatasetSourceStore } from "../stores/dataset-sources-store/index.js";
+import type { DatasetType } from "../stores/types.js";
 
 function isServerMisconfiguredAuthError(message: string) {
   return (
@@ -12,9 +13,8 @@ function isServerMisconfiguredAuthError(message: string) {
   );
 }
 
-type DatasetSourceType = "volunteer" | "organization" | "opportunity";
 
-function asSourceType(value: unknown): DatasetSourceType | undefined {
+function asSourceType(value: unknown): DatasetType | undefined {
   if (value === "volunteer" || value === "organization" || value === "opportunity") return value;
   return undefined;
 }
