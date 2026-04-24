@@ -1,6 +1,6 @@
 import { Button } from '@heroui/react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { CollapsibleCard } from '../../components/CollapsibleCard'
+import { CollapsibleCard } from '../../../components/CollapsibleCard'
 
 const PAGE_SIZE = 10
 

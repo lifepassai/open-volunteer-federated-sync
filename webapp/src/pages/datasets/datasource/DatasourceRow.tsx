@@ -1,9 +1,10 @@
 import { Button, Card } from '@heroui/react'
 import { useState } from 'react'
-import { IconPencil, IconTrash } from '../../components/icons'
-import { triggerUpdateSyncStream, type DatasetSource } from '../../net/serverApi'
-import { FullSyncModal } from './FullSyncModal'
-import { UpdateSyncModal } from './UpdateSyncModal'
+import { IconPencil, IconTrash } from '../../../components/icons'
+import { triggerUpdateSyncStream, type DatasetSource } from '../../../net/serverApi'
+import type { SseEvent } from '../../../net/sse'
+import { FullSyncModal } from '../sync/FullSyncModal'
+import { UpdateSyncModal } from '../sync/UpdateSyncModal'
 
 function formatSyncTime(iso?: string) {
   if (!iso) return '—'
@@ -50,7 +51,7 @@ export function DatasourceRow(props: {
     try {
       await triggerUpdateSyncStream({
         datasourceId: s.id,
-        onEvent({ event, data }) {
+        onEvent: ({ event, data }: SseEvent) => {
           setLogText((prev) => `${prev}\n\nevent: ${event}\ndata: ${formatSyncSsePayload(data)}`)
         },
       })

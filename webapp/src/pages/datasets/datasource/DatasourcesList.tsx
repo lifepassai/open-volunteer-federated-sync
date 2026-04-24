@@ -1,9 +1,9 @@
 import { Button } from '@heroui/react'
 import { useMemo, useState } from 'react'
-import { CollapsibleCard } from '../../components/CollapsibleCard'
-import { IconPlus } from '../../components/icons'
+import { CollapsibleCard } from '../../../components/CollapsibleCard'
+import { IconPlus } from '../../../components/icons'
 import { DatasourceRow } from './DatasourceRow'
-import { useSettingsStore } from '../../stores/settingsStore'
+import { useSettingsStore } from '../../../stores/settingsStore'
 import {
   createDatasetSource,
   deleteDatasetSource,
@@ -11,12 +11,12 @@ import {
   updateDatasetSource,
   type DatasetSource,
   type DatasetType,
-} from '../../net/serverApi'
+} from '../../../net/serverApi'
 
 export function DatasourcesList(props: { type: DatasetType }) {
   const { type } = props
 
-  const isExpert = useSettingsStore((s) => s.expertMode)
+  const isExpert = useSettingsStore((s: { expertMode: boolean }) => s.expertMode)
 
   const [loadedOnce, setLoadedOnce] = useState(false)
   const [sources, setSources] = useState<DatasetSource[]>([])
@@ -272,7 +272,7 @@ export function DatasourcesList(props: { type: DatasetType }) {
                     {[
                       'http://localhost:3001/examples/doit/volunteer',
                       'http://localhost:3001/examples/team-kinetic/volunteer',
-                      'https://example.com/api/volunteers',
+                      'https://example.com/api/datasets/volunteers',
                     ].map((url) => (
                       <button
                         key={url}

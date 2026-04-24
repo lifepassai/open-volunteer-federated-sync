@@ -10,6 +10,7 @@ import { createAccountsRouter } from "./routers/webapp-api/account.js";
 import { createDatasetSubscribersRouter } from "./routers/webapp-api/dataset-subscribers.js";
 import { createDatasetSourcesRouter } from "./routers/webapp-api/dataset-sources.js";
 import { createSyncTriggersRouter } from "./routers/webapp-api/sync/triggers.js";
+import { createVolunteerDatasetCrudRouter } from "./routers/webapp-api/dataset.js";
 import { createExamplesRouter } from "./routers/examples.js";
 
 // Sync API
@@ -34,10 +35,10 @@ export function createApp() {
   app.use("/api/dataset-subscribers", createDatasetSubscribersRouter());
   app.use("/api/dataset-sources", createDatasetSourcesRouter());
   app.use("/api/sync/triggers", createSyncTriggersRouter("volunteer", volunteerStore));
+  app.use("/api/volunteers", createVolunteerDatasetCrudRouter());
 
   // Sync API
-  app.use("/api/datasets/volunteers", createVolunteerDatasetSyncRouter());
-
+  app.use("/api/sync/volunteers", createVolunteerDatasetSyncRouter());
 
   const publicDir = path.join(__dirname, "..", "public");
   if (fs.existsSync(publicDir)) {

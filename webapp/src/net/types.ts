@@ -30,3 +30,8 @@ export type VolunteerDatasetRow = {
   name?: string
   location?: string
 }
+
+export type ListResult<T> = {
+  records: T[]
+  cursor?: string
+}

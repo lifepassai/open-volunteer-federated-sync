@@ -1,7 +1,7 @@
 import { Avatar, Button, Card } from '@heroui/react'
 import { useMemo, useState } from 'react'
-import { CollapsibleCard } from '../../components/CollapsibleCard'
-import { IconPencil, IconTrash } from '../../components/icons'
+import { CollapsibleCard } from '../../../components/CollapsibleCard'
+import { IconPencil, IconTrash } from '../../../components/icons'
 import {
   createDatasetSubscriber,
   deleteDatasetSubscriber,
@@ -11,8 +11,8 @@ import {
   type DatasetSubscriber,
   type DatasetType,
   type AccountRow,
-} from '../../net/serverApi'
-import { useAccountStore } from '../../stores/accountStore'
+} from '../../../net/serverApi'
+import { useAccountStore, type AccountState } from '../../../stores/accountStore'
 
 export function DatasetSubscriberList(props: { type: DatasetType }) {
   const { type } = props
@@ -33,7 +33,7 @@ export function DatasetSubscriberList(props: { type: DatasetType }) {
 
   const [accounts, setAccounts] = useState<AccountRow[]>([])
 
-  const account = useAccountStore((s) => s.account)
+  const account = useAccountStore((s: AccountState) => s.account)
 
   const sorted = useMemo(() => {
     return [...subscribers].sort((a, b) => a.created.localeCompare(b.created))

@@ -1,9 +1,9 @@
 import { listVolunteerDataset } from '../../net/serverApi'
 import { useAccountStore } from '../../stores/accountStore'
-import { DatasetExplorer } from './DatasetExplorer'
-import { DatasetSubscriber } from './DatasetSubscriber'
-import { DatasetSubscriberList } from './DatasetSubscriberList'
-import { DatasourcesList } from './DatasourcesList'
+import { DatasetExplorer } from './explorer/DatasetExplorer'
+import { DatasourcesList } from './datasource/DatasourcesList'
+import { DatasetSubscriber } from './subscriber/DatasetSubscriber'
+import { DatasetSubscriberList } from './subscriber/DatasetSubscriberList'
 
 export function VolunteerDatasetPage() {
   const { account } = useAccountStore()

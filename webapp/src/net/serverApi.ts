@@ -1,4 +1,4 @@
-import type { DatasetType, DatasetSubscriber, DatasetSource, VolunteerDatasetRow } from './types'
+import type { DatasetType, DatasetSubscriber, DatasetSource, VolunteerDatasetRow, ListResult } from './types'
 import { consumeSseStream, type SseEvent } from './sse'
 import { useAccountStore } from '../stores/accountStore'
 
@@ -59,7 +59,8 @@ async function request<T>(
 }
 
 export async function listVolunteerDataset(): Promise<VolunteerDatasetRow[]> {
-  return await request<VolunteerDatasetRow[]>(`/api/datasets/volunteers`, {})
+  const res = await request<ListResult<VolunteerDatasetRow>>(`/api/volunteers`, {})
+  return res.records ?? []
 }
 
 export async function listDatasetSubscribers(params: { type?: DatasetType }) {

@@ -1,7 +1,7 @@
 import { Button, Card } from '@heroui/react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { GoogleLoginButton } from '../../components/GoogleLoginButton'
-import { useAccountStore } from '../../stores/accountStore'
+import { GoogleLoginButton } from '../../../components/GoogleLoginButton'
+import { useAccountStore, type AccountState } from '../../../stores/accountStore'
 import {
   createDatasetSubscriber,
   deleteDatasetSubscriber,
@@ -9,9 +9,9 @@ import {
   updateDatasetSubscriber,
   type DatasetSubscriber as DatasetSubscriberRow,
   type DatasetType,
-} from '../../net/serverApi'
-import { FullSyncModal } from './FullSyncModal'
-import { UpdateSyncModal } from './UpdateSyncModal'
+} from '../../../net/serverApi'
+import { FullSyncModal } from '../sync/FullSyncModal'
+import { UpdateSyncModal } from '../sync/UpdateSyncModal'
 
 export function DatasetSubscriber(props: {
   type: DatasetType
@@ -19,7 +19,7 @@ export function DatasetSubscriber(props: {
   description?: string
 }) {
   const { type, title = 'My subscription', description = 'Your subscription settings for this dataset.' } = props
-  const account = useAccountStore((s) => s.account)
+  const account = useAccountStore((s: AccountState) => s.account)
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
