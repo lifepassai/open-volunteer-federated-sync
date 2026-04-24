@@ -11,15 +11,15 @@ export type DatasetSubscriber = {
 }
 
 export type DatasetSource = {
-  uri: string
+  id: string
   type: DatasetType
+  name: string
   disabled?: boolean
-  name?: string
   description?: string
-  created: string
+  baseUrl?: string
   apiKey?: string
-  lastFullSync?: string
-  lastIncrementalSync?: string
+  lastSnapshotSync?: string
+  lastUpdateSync?: string
 }
 
 /** Row shape from `GET /api/datasets/volunteers` (matches server Volunteer / StoreRecord). */

@@ -5,6 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "pnpm -F webapp dev",
+    "dev:server": "pnpm -C server dev",
     "build": "pnpm -F webapp build && pnpm -F server build",
     "lint": "pnpm -F webapp lint && pnpm -F server lint",
     "test": "pnpm -F server test",

@@ -115,7 +115,7 @@ export function AppShell({ children }: PropsWithChildren) {
   return (
     <div className="h-full bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-50">
       <div className="flex h-full">
-        <aside className="hidden w-72 border-r border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950 md:block">
+        <aside className="hidden w-48 border-r border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950 md:block">
           <div className="mb-4 flex items-center gap-2">
             <NavLink
               to="/"
@@ -124,7 +124,7 @@ export function AppShell({ children }: PropsWithChildren) {
             >
               <BrandLogo className="h-9 w-9" />
             </NavLink>
-            <div className="min-w-0 text-sm font-semibold leading-snug tracking-wide">
+            <div className="min-w-0 whitespace-normal break-words text-sm font-semibold leading-snug tracking-wide">
               Open Volunteer Federation
             </div>
           </div>
@@ -137,12 +137,12 @@ export function AppShell({ children }: PropsWithChildren) {
           </nav>
           <Separator className="my-4" />
           {account ? (
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex flex-col gap-2">
               <div className="min-w-0">
                 <div className="truncate text-xs text-slate-500 dark:text-slate-400">Signed in</div>
                 <div className="truncate text-sm">{account.email}</div>
               </div>
-              <Button size="sm" variant="secondary" onPress={logout}>
+              <Button size="sm" variant="secondary" onPress={logout} className="self-start">
                 Log out
               </Button>
             </div>
@@ -242,11 +242,13 @@ export function AppShell({ children }: PropsWithChildren) {
             onClick={() => setMobileOpen(false)}
             aria-hidden="true"
           />
-          <div className="absolute inset-y-0 left-0 w-80 max-w-[85vw] bg-white p-4 shadow-xl dark:bg-slate-950">
+          <div className="absolute inset-y-0 left-0 w-56 max-w-[85vw] bg-white p-4 shadow-xl dark:bg-slate-950">
             <div className="mb-4 flex items-center justify-between gap-2">
               <div className="flex min-w-0 items-center gap-2">
                 <BrandLogo className="h-8 w-8 shrink-0" />
-                <div className="min-w-0 text-sm font-semibold leading-snug">Open Volunteer Federation</div>
+                <div className="min-w-0 whitespace-normal break-words text-sm font-semibold leading-snug">
+                  Open Volunteer Federation
+                </div>
               </div>
               <button
                 type="button"
@@ -271,7 +273,7 @@ export function AppShell({ children }: PropsWithChildren) {
             </nav>
             <Separator className="my-4" />
             {account ? (
-              <div className="flex items-center justify-between gap-2">
+              <div className="flex flex-col gap-2">
                 <div className="min-w-0">
                   <div className="truncate text-xs text-slate-500 dark:text-slate-400">Signed in</div>
                   <div className="truncate text-sm">{account.email}</div>
@@ -279,6 +281,7 @@ export function AppShell({ children }: PropsWithChildren) {
                 <Button
                   size="sm"
                   variant="secondary"
+                  className="self-start"
                   onPress={() => {
                     logout()
                     setMobileOpen(false)

@@ -1,7 +1,7 @@
 import { Button, Card } from '@heroui/react'
 import { useState } from 'react'
 import { IconPencil, IconTrash } from '../../components/icons'
-import type { DatasetSource } from '../../net/serverApi'
+import { triggerUpdateSyncStream, type DatasetSource } from '../../net/serverApi'
 import { FullSyncModal } from './FullSyncModal'
 import { UpdateSyncModal } from './UpdateSyncModal'
 
@@ -12,6 +12,11 @@ function formatSyncTime(iso?: string) {
 }
 
 type SyncMode = 'updates' | 'full'
+
+/** Log SSE payload: show `message` as plain text; JSON only for remaining fields (avoids quoting human text). */
+function formatSyncSsePayload(data: unknown): string {
+  return typeof data === "string" ? data : JSON.stringify(data, null, 2)
+}
 
 export function DatasourceRow(props: {
   source: DatasetSource
@@ -31,24 +36,24 @@ export function DatasourceRow(props: {
     setSyncLoading(true)
     setLogText('')
 
-    const path = '/examples/volunteer/updates.json'
-    setLogText((prev) => `${prev}${prev ? '\n\n' : ''}GET ${path}`)
+    if (syncMode === 'full') {
+      setLogText(
+        'Full snapshot sync from the datasource is not wired in the web UI yet.\nUse incremental “Sync updates” or the sync API directly.',
+      )
+      setSyncLoading(false)
+      return
+    }
+
+    const path = `/api/sync/triggers/update/${encodeURIComponent(s.id)}`
+    setLogText((prev) => `${prev}${prev ? '\n\n' : ''}GET ${path}\nAccept: text/event-stream`)
 
     try {
-      const res = await fetch(path, { method: 'GET' })
-      const contentType = res.headers.get('content-type') ?? ''
-
-      let payload: unknown
-      if (contentType.includes('application/json')) {
-        payload = await res.json()
-      } else {
-        payload = await res.text()
-      }
-
-      const pretty =
-        typeof payload === 'string' ? payload : JSON.stringify(payload, null, 2)
-
-      setLogText((prev) => `${prev}\n\n${res.status} ${res.statusText}\n${pretty}`)
+      await triggerUpdateSyncStream({
+        datasourceId: s.id,
+        onEvent({ event, data }) {
+          setLogText((prev) => `${prev}\n\nevent: ${event}\ndata: ${formatSyncSsePayload(data)}`)
+        },
+      })
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e)
       setLogText((prev) => `${prev}\n\nERROR\n${msg}`)
@@ -70,15 +75,15 @@ export function DatasourceRow(props: {
               </span>
             ) : null}
           </div>
-          <div className="truncate font-mono text-sm text-foreground/70">{s.uri}</div>
+          <div className="truncate font-mono text-sm text-foreground/70">{s.baseUrl ?? '—'}</div>
           <div className="mt-2 grid gap-1 text-xs text-foreground/60 sm:text-sm">
             <div>
-              <span className="text-foreground/50">Last incremental sync: </span>
-              <span className="text-foreground/80">{formatSyncTime(s.lastIncrementalSync)}</span>
+              <span className="text-foreground/50">Last update sync: </span>
+              <span className="text-foreground/80">{formatSyncTime(s.lastUpdateSync)}</span>
             </div>
             <div>
-              <span className="text-foreground/50">Last full sync: </span>
-              <span className="text-foreground/80">{formatSyncTime(s.lastFullSync)}</span>
+              <span className="text-foreground/50">Last snapshot sync: </span>
+              <span className="text-foreground/80">{formatSyncTime(s.lastSnapshotSync)}</span>
             </div>
           </div>
         </div>
@@ -142,6 +147,7 @@ export function DatasourceRow(props: {
             <UpdateSyncModal
               onClose={() => setSyncMode(null)}
               onStart={startSync}
+              onClear={() => setLogText('')}
               loading={anyLoading}
               logText={logText}
             />

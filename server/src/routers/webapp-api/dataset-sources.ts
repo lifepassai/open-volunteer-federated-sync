@@ -73,12 +73,12 @@ export function createDatasetSourcesRouter(): Router {
       if (!type) return res.status(400).json({ error: "BadRequest", message: "type is required" });
 
       const name = readRequiredString(req.body, "name");
-      const baseUrl = readRequiredString(req.body, "baseUrl");
+      const baseUrl = readOptionalString(req.body, "baseUrl");
       const description = readOptionalString(req.body, "description");
       const apiKey = readOptionalString(req.body, "apiKey");
       const disabled = readOptionalBoolean(req.body, "disabled");
 
-      const record: DatasetSource = {
+      const record = {
         type,
         name,
         description,
@@ -101,28 +101,30 @@ export function createDatasetSourcesRouter(): Router {
     }
   });
 
-  router.patch("/:type/:name", requireAdmin, async (req: Request, res: Response) => {
+  router.patch("/:id", requireAdmin, async (req: Request, res: Response) => {
     try {
-      let { type, name } = firstParams(req);
-      name = decodeURIComponent(name);
-
-      const existing = await store.read({ type: type as DatasetType, name });
+      const { id } = firstParams(req);
+      const existing = await store.read(decodeURIComponent(id));
       if (!existing)
         return res.status(404).json({ error: "NotFound", message: "NotFound" });
 
+      const nextName = readOptionalString(req.body, "name") ?? existing.name;
+      const baseUrl = readOptionalString(req.body, "baseUrl");
       const description = readOptionalString(req.body, "description");
       const apiKey = readOptionalString(req.body, "apiKey");
       const disabled = readOptionalBoolean(req.body, "disabled");
 
-      const updated = await store.update({
+      const merged: DatasetSource = {
         ...existing,
-        type: type as DatasetType,
-        name,
+        name: nextName,
+        baseUrl,
         description,
         apiKey,
         disabled,
-      });
-      res.json(updated);
+      };
+
+      const updated = await store.update(merged);
+      return res.json(updated);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Unauthorized";
       if (isServerMisconfiguredAuthError(message)) {
@@ -134,11 +136,10 @@ export function createDatasetSourcesRouter(): Router {
     }
   });
 
-  router.delete("/:type/:name", requireAdmin, async (req: Request, res: Response) => {
+  router.delete("/:id", requireAdmin, async (req: Request, res: Response) => {
     try {
-      let { type, name } = firstParams(req);
-      name = decodeURIComponent(name);
-      await store.delete({ type: type as DatasetType, name });
+      const { id } = firstParams(req);
+      await store.delete(decodeURIComponent(id));
       res.status(204).end();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Unauthorized";

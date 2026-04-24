@@ -10,6 +10,7 @@ import { createAccountsRouter } from "./routers/webapp-api/account.js";
 import { createDatasetSubscribersRouter } from "./routers/webapp-api/dataset-subscribers.js";
 import { createDatasetSourcesRouter } from "./routers/webapp-api/dataset-sources.js";
 import { createSyncTriggersRouter } from "./routers/webapp-api/sync/triggers.js";
+import { createExamplesRouter } from "./routers/examples.js";
 
 // Sync API
 import { createVolunteerDatasetSyncRouter } from "./routers/sync-api/dataset.js";
@@ -40,6 +41,8 @@ export function createApp() {
 
   const publicDir = path.join(__dirname, "..", "public");
   if (fs.existsSync(publicDir)) {
+    app.use("/examples", createExamplesRouter({ publicDir }));
+
     app.use(
       express.static(publicDir, {
         maxAge: asNumber(process.env.STATIC_MAX_AGE_SECONDS, 60) * 1000,
@@ -48,8 +51,9 @@ export function createApp() {
     );
 
     const indexHtml = path.join(publicDir, "index.html");
-    app.get("*", (req, res, next) => {
-      if (req.path.startsWith("/api/")) return next();
+    // Express 5 (path-to-regexp v8) doesn't accept bare "*" or "/*" routes.
+    // Use a regex to serve the SPA index for non-API GETs.
+    app.get(/^(?!\/api\/).*/, (req, res, next) => {
       if (!fs.existsSync(indexHtml)) return next();
       res.sendFile(indexHtml);
     });

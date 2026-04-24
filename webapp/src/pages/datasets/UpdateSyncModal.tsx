@@ -3,10 +3,11 @@ import { Button } from '@heroui/react'
 export function UpdateSyncModal(props: {
   onClose: () => void
   onStart?: () => void
+  onClear?: () => void
   loading?: boolean
   logText?: string
 }) {
-  const { onClose, onStart, loading, logText } = props
+  const { onClose, onStart, onClear, loading, logText } = props
 
   return (
     <div className="relative w-full max-w-xl rounded-xl bg-white p-4 shadow-xl dark:bg-slate-950">
@@ -38,6 +39,9 @@ export function UpdateSyncModal(props: {
       ) : null}
 
       <div className="mt-4 flex items-center justify-end gap-2">
+        <Button variant="secondary" onPress={onClear} isDisabled={loading || !logText}>
+          Clear
+        </Button>
         <Button variant="secondary" onPress={onClose} isDisabled={loading}>
           Cancel
         </Button>

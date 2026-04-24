@@ -1,0 +1,30 @@
+{
+    "updates": [
+        {
+            "uri": "https://example.com/volunteer/3",
+            "updated": "2026-04-21T12:00:00Z",
+            "created": "2026-04-21T12:00:00Z",
+            "name": "John Doe is kinetic!",
+            "location": "New York, NY"
+        },
+        {
+            "uri": "https://example.com/volunteer/4",
+            "updated": "2026-04-21T12:00:00Z",
+            "created": "2026-04-21T12:00:00Z",
+            "name": "Jane Smith is kinetic!",
+            "location": "Los Angeles, CA"
+        },
+        {
+            "uri": "https://example.com/volunteer/5",
+            "updated": "2026-04-21T12:00:00Z",
+            "created": "2026-04-21T12:00:00Z",
+            "name": "Jim Beam is kinetic!",
+            "location": "Chicago, IL"
+        }
+    ],
+    "deletes": [
+        "https://example.com/volunteer/1",
+        "https://example.com/volunteer/2"
+    ],
+    "since": "2026-04-21T12:00:00Z"
+}

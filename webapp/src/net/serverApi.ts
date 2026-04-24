@@ -1,8 +1,10 @@
 import type { DatasetType, DatasetSubscriber, DatasetSource, VolunteerDatasetRow } from './types'
+import { consumeSseStream, type SseEvent } from './sse'
 import { useAccountStore } from '../stores/accountStore'
 
 export type { DatasetType, DatasetSubscriber, DatasetSource, VolunteerDatasetRow } from './types'
 type ApiError = { failure?: { code: number, message: string, details?: string[] } }
+type ApiErrorAlt = { error?: string; message?: string }
 
 export type AccountRow = {
   uid: string
@@ -44,10 +46,16 @@ async function request<T>(
   if (res.ok)
     return data as T
 
-  if ( res.status === 401 || res.status === 403 )
+  // 401 means our session is invalid/expired. 403 means "you are logged in but not allowed".
+  // Only auto-logout on 401 so forbidden actions don't unexpectedly clear sessions.
+  if (res.status === 401)
     useAccountStore.getState().logout()
 
-  throw new Error( (data as ApiError)?.failure?.message || `Request failed with ${res.status}: ${res.statusText}`)
+  const msg =
+    (data as ApiError)?.failure?.message ||
+    (data as ApiErrorAlt)?.message ||
+    `Request failed with ${res.status}: ${res.statusText}`
+  throw new Error(msg)
 }
 
 export async function listVolunteerDataset(): Promise<VolunteerDatasetRow[]> {
@@ -109,9 +117,9 @@ export async function listDatasetSources(params: { type?: DatasetType }) {
 }
 
 export async function createDatasetSource(params: {
-  uri: string
   type: DatasetType
-  name?: string
+  name: string
+  baseUrl?: string
   description?: string
   apiKey?: string
   disabled?: boolean
@@ -119,9 +127,9 @@ export async function createDatasetSource(params: {
   return await request<DatasetSource>(`/api/dataset-sources`, {
     method: 'POST',
     body: {
-      uri: params.uri,
       type: params.type,
       name: params.name,
+      baseUrl: params.baseUrl,
       description: params.description,
       apiKey: params.apiKey,
       disabled: params.disabled,
@@ -130,18 +138,18 @@ export async function createDatasetSource(params: {
 }
 
 export async function updateDatasetSource(params: {
-  uri: string
-  type: DatasetType
+  id: string
   name?: string
+  baseUrl?: string
   description?: string
   apiKey?: string
   disabled?: boolean
 }) {
-  return await request<DatasetSource>(`/api/dataset-sources/${encodeURIComponent(params.uri)}`, {
+  return await request<DatasetSource>(`/api/dataset-sources/${encodeURIComponent(params.id)}`, {
     method: 'PATCH',
     body: {
-      type: params.type,
       name: params.name,
+      baseUrl: params.baseUrl,
       description: params.description,
       apiKey: params.apiKey,
       disabled: params.disabled,
@@ -149,8 +157,8 @@ export async function updateDatasetSource(params: {
   })
 }
 
-export async function deleteDatasetSource(params: { uri: string }) {
-  return await request<void>(`/api/dataset-sources/${encodeURIComponent(params.uri)}`, {
+export async function deleteDatasetSource(params: { id: string }) {
+  return await request<void>(`/api/dataset-sources/${encodeURIComponent(params.id)}`, {
     method: 'DELETE',
   })
 }
@@ -174,4 +182,58 @@ export async function deleteAccount(params: { uid: string }) {
   })
 }
 
+/**
+ * Incremental sync: opens an SSE stream (fetch + manual parse) so we can send `Authorization: Bearer`.
+ * Events: `progress`, `updates`, `result`, `done`, `error`.
+ */
+export async function triggerUpdateSyncStream(params: {
+  datasourceId: string
+  since?: string
+  onEvent: (event: SseEvent) => void
+}): Promise<void> {
+  const account = useAccountStore.getState().account
+  if (!account) throw new Error('Not logged in')
 
+  const q = new URLSearchParams()
+  if (params.since) q.set('since', params.since)
+  const qs = q.toString()
+  const path = `/api/sync/triggers/update/${encodeURIComponent(params.datasourceId)}${qs ? `?${qs}` : ''}`
+
+  const res = await fetch(path, {
+    method: 'GET',
+    headers: {
+      Accept: 'text/event-stream',
+      Authorization: `Bearer ${account.bearerToken}`,
+    },
+  })
+
+  const contentType = res.headers.get('content-type') ?? ''
+
+  if (!res.ok) {
+    if (res.status === 401) useAccountStore.getState().logout()
+    const text = await res.text()
+    let msg = `Request failed with ${res.status}: ${res.statusText}`
+    if (text) {
+      try {
+        const parsed = JSON.parse(text) as ApiError | ApiErrorAlt
+        msg =
+          (parsed as ApiError)?.failure?.message ||
+          (parsed as ApiErrorAlt)?.message ||
+          msg
+      } catch {
+        msg = text
+      }
+    }
+    throw new Error(msg)
+  }
+
+  if (!res.body) throw new Error('No response body')
+  if (!contentType.includes('text/event-stream')) {
+    const text = await res.text()
+    throw new Error(text ? `Expected event stream, got: ${text.slice(0, 240)}` : 'Expected event stream')
+  }
+
+  await consumeSseStream(res.body, (event: SseEvent) => {
+    params.onEvent(event)
+  })
+}
