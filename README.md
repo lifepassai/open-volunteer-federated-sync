@@ -1,24 +1,90 @@
 # open-volunteer-federated-sync
-Service for synchronizing a federation of open volunteer databases
+Service for synchronizing a federation of open volunteer datasets (currently focused on `volunteer`).
 
-## Local development
+### Project layout
 
-Run the API (file-backed storage by default):
+- **`server/`**: Express API server (also packaged for AWS Lambda in production)
+  - **`server/src/routers/webapp-api/`**: Webapp-facing CRUD + admin APIs
+  - **`server/src/routers/sync-api/`**: Dataset sync API (pull/push) used by external subscribers
+  - **`server/src/stores/`**: Storage layer (Store abstractions + implementations)
+- **`webapp/`**: Vite + React UI (proxies API calls to the local server in dev)
+- **`aws/`**: Deployment templates/scripts (CloudFormation + packaging utilities)
+
+### Quickstart (local dev, file store)
+
+Prereqs: Node.js + `pnpm`.
+
+1) Install dependencies:
+
+```bash
+pnpm install
+```
+
+2) Configure Google OAuth client IDs (required to log in):
+
+- **Webapp**: create `webapp/.env` (copy from `webapp/.env.example`) and set:
+  - `VITE_GOOGLE_CLIENT_ID=...`
+- **Server**: set `GOOGLE_CLIENT_ID` in the server environment (must match the same Google “Web client” ID used by the webapp).
+  - Easiest local approach:
+
+```bash
+export GOOGLE_CLIENT_ID=your-google-oauth-client-id.apps.googleusercontent.com
+```
+
+3) Run the server (defaults to file-backed stores):
 
 ```bash
 pnpm -F server dev
 ```
 
-Run the webapp (proxies `/api` and `/google-login` to the server):
+4) Run the webapp:
 
 ```bash
 pnpm -F webapp dev
 ```
 
-## Storage backends
+Notes:
+- The webapp proxies **`/api`** and **`/google-login`** to the local server during development.
+- The server uses a **file-based Volunteer store by default** (`VOLUNTEER_STORAGE_BACKEND` / `STORAGE_BACKEND` default to `file`).
 
-- **Local**: `STORAGE_BACKEND=file` (default). Each account is a JSON file under `./data/accounts/` named `encodeURIComponent(email).json` (derived from `ACCOUNTS_FILE`, default `./data/accounts.json`). Set `DATA_DIR` / `ACCOUNTS_FILE` to change the path. Legacy monolithic `accounts.json` and older per-uid files are migrated on first access.
-- **AWS**: `STORAGE_BACKEND=dynamodb` with `ACCOUNTS_TABLE_NAME`.
+### Storage layer: Store abstractions + implementations
+
+The server code is written against Store interfaces so we can swap persistence without changing router logic:
+
+- **`CrudStore`**: webapp-facing CRUD APIs (list/create/read/update/delete).
+- **`SyncronizingStore`**: dataset sync APIs (snapshot/updates/batch-read + push updates).
+- **Dataset-specific Store (example)**: `VolunteerStore` extends both `CrudStore` and `SyncronizingStore`.
+
+Current implementation:
+- **File store (default)**: `FileVolunteerStore` stores records as JSON files under `./.data/volunteers/` by default (overridable via `DATA_DIR`). Files are named `encodeURIComponent(uri).json`.
+
+Planned / supported-by-design (via the same Store abstraction):
+- **MySQL**, **DynamoDB**, **Firestore** (implement the same Store interfaces and update the corresponding `resolve*Store()` factory).
+
+### Sync API overview (`server/src/routers/sync-api/dataset.ts`)
+
+The Sync API is dataset-scoped and is designed for **pull-based replication** plus an optional **push updates** endpoint.
+
+Routes are mounted per dataset type (e.g. `volunteer`) and operate on a common set of payloads:
+
+- **Pull updates since a timestamp**
+  - `GET /sync-api/<dataset>/updates?since=<isoTimestamp>[&cursor=...&limit=...]`
+  - Returns `{ updates: T[], deleted: uri[], cursor? }`
+- **Snapshot (enumerate all record URIs)**
+  - `GET /sync-api/<dataset>/snapshot?[cursor=...&limit=...]`
+  - Returns `{ uris: uri[], cursor?, batchSize? }`
+- **Batch read a set of records**
+  - `PUT /sync-api/<dataset>/batch-read`
+  - Body: `{ uris: uri[] }`
+  - Returns `{ records: T[], deleted?: uri[] }`
+- **Push updates into the dataset (admin-only on the server)**
+  - `PUT /sync-api/<dataset>/updates`
+  - Body: `{ updates: T[], deletes: uri[] }`
+  - Returns `{ updated: uri[], deleted: uri[], ignored: uri[], batchSize? }`
+
+Auth model (high level):
+- Pull endpoints require a **dataset subscriber** credential for that dataset type.
+- Push updates currently require an **admin** user.
 
 ## Production deployment (single Lambda + HTTP API + DynamoDB)
 
