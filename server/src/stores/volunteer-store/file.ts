@@ -116,9 +116,20 @@ export class FileVolunteerStore implements VolunteerStore {
     }
   }
 
+  // TODO: fix so we don't _listAllRecords() each time
   async list(_cursor?: string) {
-    const records = await this._listAllRecords();
-    return { records };
+    const pageSize = 10;
+    const all = await this._listAllRecords();
+    const sorted = all.sort((a, b) => a.uri.localeCompare(b.uri));
+
+    const cursor = typeof _cursor === "string" && _cursor.length > 0 ? _cursor : undefined;
+    const startIdx =
+      cursor ? Math.max(0, sorted.findIndex((v) => v.uri === cursor) + 1) : 0;
+
+    const records = sorted.slice(startIdx, startIdx + pageSize);
+    const nextCursor = startIdx + pageSize < sorted.length ? records.at(-1)?.uri : undefined;
+
+    return nextCursor ? { records, cursor: nextCursor } : { records };
   }
 
   async queryUpdates(query: SinceQuery): Promise<QueryUpdatesResult<Volunteer>> {

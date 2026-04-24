@@ -1,7 +1,7 @@
 import { Router } from "express";
 import type { Request, Response } from "express";
 import type { CrudStore } from "../../stores/types/crud.js";
-import { requireAdmin } from "../../auth/middleware.js";
+import { requireAuth, requireAdmin } from "../../auth/middleware.js";
 import { firstParams } from "../../utils/misc.js";
 import { resolveVolunteerStore } from "../../stores/volunteer-store/index.js";
 import type { Volunteer, CreateVolunteerParams, UpdateVolunteerParams } from "../../stores/volunteer-store/types.js";
@@ -32,7 +32,7 @@ export function createDatasetCrudRouter<Key, T, CreateParams, UpdateParams>(
   const parseKey = opts.parseKey ?? ((raw: string) => decodeURIComponent(raw) as unknown as Key);
 
   // List
-  router.get("/", requireAdmin, async (req: Request, res: Response) => {
+  router.get("/", requireAuth, async (req: Request, res: Response) => {
     try {
       const cursor = typeof req.query.cursor === "string" ? req.query.cursor : undefined;
       const result = await store.list(cursor);
@@ -49,7 +49,7 @@ export function createDatasetCrudRouter<Key, T, CreateParams, UpdateParams>(
   });
 
   // Create
-  router.post("/", requireAdmin, async (req: Request, res: Response) => {
+  router.post("/", requireAuth, async (req: Request, res: Response) => {
     try {
       const created = await store.create(req.body as CreateParams);
       res.status(201).json(created);
@@ -71,7 +71,7 @@ export function createDatasetCrudRouter<Key, T, CreateParams, UpdateParams>(
   });
 
   // Read
-  router.get("/:id", requireAdmin, async (req: Request, res: Response) => {
+  router.get("/:id", requireAuth, async (req: Request, res: Response) => {
     try {
       const { id } = firstParams(req);
       const key = parseKey(id);

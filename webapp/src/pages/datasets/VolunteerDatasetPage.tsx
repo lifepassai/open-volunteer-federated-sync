@@ -1,4 +1,4 @@
-import { listVolunteerDataset } from '../../net/serverApi'
+import { createVolunteerDatasetRow, deleteVolunteerDatasetRow, listVolunteerDataset, updateVolunteerDatasetRow } from '../../net/serverApi'
 import { useAccountStore } from '../../stores/accountStore'
 import { DatasetExplorer } from './explorer/DatasetExplorer'
 import { DatasourcesList } from './datasource/DatasourcesList'
@@ -16,7 +16,19 @@ export function VolunteerDatasetPage() {
           defaultCollapsed
           title="Volunteer dataset"
           description="Records from the managed volunteer dataset."
-          fetchRows={listVolunteerDataset}
+          fetchPage={(cursor) => listVolunteerDataset({ cursor })}
+          isAdmin={isAdmin}
+          createRecord={(record) => createVolunteerDatasetRow({
+            uri: String(record.uri ?? ''),
+            name: typeof record.name === 'string' ? record.name : undefined,
+            location: typeof record.location === 'string' ? record.location : undefined,
+          })}
+          updateRecord={(record) => updateVolunteerDatasetRow({
+            uri: String(record.uri ?? ''),
+            name: typeof record.name === 'string' ? record.name : undefined,
+            location: typeof record.location === 'string' ? record.location : undefined,
+          })}
+          deleteRecord={(uri) => deleteVolunteerDatasetRow({ uri })}
         />
       ) : null}
       <DatasetSubscriber

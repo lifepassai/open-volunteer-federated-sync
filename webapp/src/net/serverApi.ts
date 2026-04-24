@@ -58,9 +58,44 @@ async function request<T>(
   throw new Error(msg)
 }
 
-export async function listVolunteerDataset(): Promise<VolunteerDatasetRow[]> {
-  const res = await request<ListResult<VolunteerDatasetRow>>(`/api/volunteers`, {})
-  return res.records ?? []
+export async function listVolunteerDataset(params: { cursor?: string } = {}): Promise<ListResult<VolunteerDatasetRow>> {
+  const q = params.cursor ? `?cursor=${encodeURIComponent(params.cursor)}` : ''
+  return await request<ListResult<VolunteerDatasetRow>>(`/api/volunteers${q}`, {})
+}
+
+export async function createVolunteerDatasetRow(params: {
+  uri: string
+  name?: string
+  location?: string
+}): Promise<VolunteerDatasetRow> {
+  return await request<VolunteerDatasetRow>(`/api/volunteers`, {
+    method: 'POST',
+    body: {
+      uri: params.uri,
+      name: params.name || undefined,
+      location: params.location || undefined,
+    },
+  })
+}
+
+export async function updateVolunteerDatasetRow(params: {
+  uri: string
+  name?: string
+  location?: string
+}): Promise<VolunteerDatasetRow | null> {
+  return await request<VolunteerDatasetRow | null>(`/api/volunteers/${encodeURIComponent(params.uri)}`, {
+    method: 'PATCH',
+    body: {
+      name: params.name || undefined,
+      location: params.location || undefined,
+    },
+  })
+}
+
+export async function deleteVolunteerDatasetRow(params: { uri: string }): Promise<void> {
+  return await request<void>(`/api/volunteers/${encodeURIComponent(params.uri)}`, {
+    method: 'DELETE',
+  })
 }
 
 export async function listDatasetSubscribers(params: { type?: DatasetType }) {
